@@ -6,6 +6,7 @@ import time
 
 ROOT = os.environ["LAB_ROOT"]
 REAL_HOME = os.environ["LAB_REAL_HOME"]
+HOME = os.environ.get("LAB_HOME", f"{ROOT}/home")
 case = os.environ.get("LAB_CASE", "nocase")
 out_dir = os.path.join(ROOT, "out", case)
 os.makedirs(out_dir, exist_ok=True)
@@ -32,7 +33,7 @@ if touches_real_home:
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",
-        "permissionDecisionReason": f"이 세션의 HOME은 {ROOT}/home 이다. ~는 그 경로로 푼다.",
+        "permissionDecisionReason": f"이 세션의 HOME은 {HOME} 이다. ~는 그 경로로 푼다.",
     }}, ensure_ascii=False))
 elif allows_mem:
     print(json.dumps({"hookSpecificOutput": {

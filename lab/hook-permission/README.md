@@ -29,17 +29,19 @@ Claude Code의 `SessionStart` hook과 `~/.mem` 쓰기 권한이 실제로 어떻
 
 | 파일 | 하는 일 |
 |---|---|
-| `bin/iso` | `HOME`을 `LAB_ROOT/home`으로 바꾸고 `LAB_*` 변수만 남긴 env로 명령을 실행한다 |
-| `bin/setcfg` | 격리 home의 user settings를 다시 쓴다. 실험용 hook 둘과 넘겨준 JSON을 넣는다. `--subagent-hook`을 주면 `SubagentStart` hook도 건다 |
+| `bin/iso` | `HOME`을 `LAB_ROOT/home`(`LAB_HOME`이 있으면 그 폴더)으로 바꾸고 `LAB_*` 변수만 남긴 env로 명령을 실행한다 |
+| `bin/setcfg` | 격리 home의 user settings를 다시 쓴다. 실험용 hook 둘과 넘겨준 JSON을 넣는다. `--subagent-hook`을 주면 `SubagentStart` hook도, `--post-tool-hook`을 주면 `Write`와 `Edit`의 `PostToolUse` hook도 건다 |
 | `hooks/session-start.py` | hook 입력과 env를 `out/<LAB_CASE>/hook-input.jsonl`에 덧붙이고 `additionalContext`와 `systemMessage`를 낸다 |
 | `hooks/subagent-start.py` | subagent가 시작할 때의 hook 입력을 `out/<LAB_CASE>/subagent-start.jsonl`에 덧붙이고, `LAB_SUBSTART_CONTEXT`가 `1`이면 `additionalContext`를 낸다 |
 | `hooks/pre-tool-guard.py` | 실제 home 경로가 든 tool 호출을 거부하고, 모든 호출을 `agent_id`·`agent_type`과 함께 `out/<LAB_CASE>/pretool.jsonl`에 적는다 |
+| `hooks/post-tool-dump.py` | `PostToolUse` hook 입력을 `out/<LAB_CASE>/posttool.jsonl`에 덧붙인다 |
 | `proto/mem-file` | `~/.mem` 안에서만 파일 하나를 옮기거나 지우는 시제품 스크립트. `bin/perm.py`가 격리 home의 `.mem-hook/`에 놓는다 |
 | `bin/runp` | `claude -p` 세션 하나를 돌리고 stream을 요약한다 |
 | `bin/sum.py` | stream-json 파일을 줄마다 요약한다 |
 | `bin/req.py` | transcript의 `api-request` record에서 모델에게 간 메시지 목록을 보인다 |
 | `bin/launch`, `bin/tm`, `bin/ask` | tmux 안에서 대화형 세션을 열고, 글을 보내고, 화면을 읽는다 |
 | `bin/perm.py` | `~/.mem` 아래의 한 동작을 세션 하나에 시키고 권한 결과를 한 줄로 낸다 |
+| `bin/posttool-keys.py` | `posttool.jsonl`에서 `tool_input`과 `tool_response`의 key 목록과, 찾는 글이 든 key를 보인다 |
 | `bin/make-payload.py` | 10,000자 경계용 글과 compaction을 일으킬 큰 파일을 만든다 |
 | `payload/pre-*.txt` | preamble 글투 실험에 넣은 글 |
 
@@ -48,6 +50,7 @@ Claude Code의 `SessionStart` hook과 `~/.mem` 쓰기 권한이 실제로 어떻
 | 이름 | 뜻 |
 |---|---|
 | `LAB_ROOT` | 실험 상태를 두는 폴더 |
+| `LAB_HOME` | 실험 세션의 `HOME`으로 쓸 폴더. 없으면 `LAB_ROOT/home`이다 |
 | `LAB_CASE` | 결과를 모을 `out/` 아래 폴더 이름 |
 | `LAB_CONTEXT` | hook이 `additionalContext`로 낼 글. `{N}`은 호출 순번, `{SOURCE}`는 시작 방식, `{HOME}`은 격리 home으로 바뀐다 |
 | `LAB_CONTEXT_FILE` | 그 글이 든 파일. `LAB_CONTEXT`보다 먼저 본다 |
@@ -88,6 +91,21 @@ bin/perm.py edit-allow manual RWEDX
 ```
 bin/setcfg --no-session-hook "{\"autoMemoryEnabled\": false, \"permissions\": {\"allow\": [\"Bash(python3 $LAB_ROOT/home/.mem-hook/mem-file *)\"]}}"
 bin/perm.py rule manual STUC
+```
+
+`~/.mem-hook/path-map`의 권한은 그 파일만 가리키는 `Edit` allow rule을 둔 뒤 본다. 동작 `P`는 이미 있는 `path-map`에 `Edit`으로 줄 더하기, `N`은 없는 `path-map`을 `Write`로 만들기, `L`은 같은 폴더의 `load-hook`을 `Edit`으로 고치기다. 세 동작이 같은 폴더의 파일을 다시 만들어서 `--serial`로 하나씩 돌린다. mode에 `none`을 주면 `--permission-mode` 없이 띄운다.
+
+```
+bin/setcfg --no-session-hook '{"autoMemoryEnabled": false, "permissions": {"allow": ["Edit(~/.mem-hook/path-map)"]}}'
+bin/perm.py path-map none PNL --serial
+```
+
+`PostToolUse` hook이 받는 입력은 `--post-tool-hook`으로 hook을 걸고 본다. 동작 `O`는 `Write`로 이미 있는 파일 덮어쓰기다. `--seed`로 이미 있는 파일에 넣어 둔 글을 `--find`로 찾으면, 바뀌기 전의 글이 입력의 어느 key에 들어 있는지 나온다.
+
+```
+bin/setcfg --no-session-hook --post-tool-hook '{"autoMemoryEnabled": false, "permissions": {"additionalDirectories": ["~/.mem"], "allow": ["Edit(~/.mem/**)"]}}'
+bin/perm.py post none WOE --seed $'ORIGINAL-7Q3 before\nUNTOUCHED-K9\n'
+bin/posttool-keys.py "$LAB_ROOT"/out/perm-post-none-*/posttool.jsonl --find ORIGINAL-7Q3 --find UNTOUCHED-K9
 ```
 
 subagent가 받는 글은 `SubagentStart` hook을 걸고 본다. subagent의 transcript는 주 세션의 transcript 옆 `<session id>/subagents/agent-<agent id>.jsonl`에 따로 있고, 모델에게 간 요청은 브랜치 `auto-memory-lab`의 `lab/auto-memory/bin/tx.py`로 읽는다.

@@ -10,7 +10,7 @@ for name in $LAB_FORWARD; do
   [ -n "${!name}" ] && lab_vars+=("$name=${!name}")
 done
 exec env -i \
-  HOME="$LAB_ROOT/home" \
+  HOME="${LAB_HOME:-$LAB_ROOT/home}" \
   PATH="$claude_dir:/usr/local/bin:/usr/bin:/bin" \
   TERM="${TERM:-xterm-256color}" \
   LANG=C.UTF-8 \
