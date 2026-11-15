@@ -15,15 +15,17 @@
 
 ## 만들 것
 
-load하는 hook 스크립트(`mem-hook`)와, 쓰기 호출을 로그에 적는 hook과, `~/.mem` 안의 파일을 옮기고 지우는 스크립트와, 에이전트가 기억을 만들어 분류하는 길을 만든다. hook은 상주 프로세스 없이 파일만 읽고 쓴다. `mem-hook`은 작업 위치로 받는 layer를 찾아 그 기억을 load한다. 작업 위치는 세션을 연 폴더이고, 세션 도중 에이전트가 다른 폴더로 옮겨도 바뀌지 않는다.
+load하는 hook(`load-hook`)과, 쓰기 호출을 로그에 적는 hook(`log-hook`)과, `~/.mem` 안의 파일을 옮기고 지우는 스크립트(`mem-file`)와, 이 셋을 기기에 놓는 설치 스크립트(`install`)와, 에이전트가 기억을 만들어 분류하는 길을 만든다. hook은 상주 프로세스 없이 파일만 읽고 쓴다.
 
-hook 둘과 옮기고 지우는 스크립트는 Python 3으로 쓰고, 기대는 것은 `python3`와 standard library뿐이어서 설치할 패키지가 없다. 버전 하한은 적지 않고 돌려서 확인한 버전만 적는다. 이 기기에 깔린 것은 Python 3.14.4다. 다른 기기로 옮길 때는 그 기기에서 돌려 보고 하한을 적는다.
+`load-hook`은 작업 위치로 받는 layer를 찾아 그 기억을 load한다. 작업 위치는 세션을 연 폴더이고, 세션 도중 에이전트가 다른 폴더로 옮겨도 바뀌지 않는다.
 
-`mem-hook`과 쓰기 호출을 로그에 적는 hook은 한쪽이 깨져도 다른 쪽이 돌아야 해서 파일 둘로 따로 둔다. 옮기고 지우는 스크립트는 hook 둘과 따로 둔 셋째 파일이고, 이름과 자리는 아직 정하지 않았다.
+`load-hook`, `log-hook`, `mem-file`, `install`은 Python 3으로 쓰고, 기대는 것은 `python3`와 standard library뿐이어서 설치할 패키지가 없다. 버전 하한은 적지 않고 돌려서 확인한 버전만 적는다. 이 기기에 깔린 것은 Python 3.14.4다. 다른 기기로 옮길 때는 그 기기에서 돌려 보고 하한을 적는다.
+
+`load-hook`과 `log-hook`은 한쪽이 깨져도 다른 쪽이 돌아야 해서 파일 둘로 따로 둔다. `mem-file`은 hook 둘과 따로 둔 셋째 파일이다. `install`이 세 파일을 `~/.mem-hook/`에 복사한다. 세 파일은 확장자 없이 두고 `python3 <경로>`로 부른다. `install`이 하는 일은 #설치에 적는다.
 
 `python3`가 PATH에 없어 스크립트가 돌지 못하면 세션 시작 줄이 뜨지 않는다. 이 경우는 따로 다루지 않고, 줄이 뜨지 않을 때의 알림 모양은 아직 정하지 않았다.
 
-Claude Code의 auto memory는 끈다. 켜 두면 같은 것이 두 곳에 쌓여서, 답에 쓰인 것이 어느 쪽에서 왔는지 가를 수 없기 때문이다.
+Claude Code의 auto memory는 끈다. 켜 두면 같은 것이 두 곳에 쌓여서, 답에 쓰인 것이 어느 쪽에서 왔는지 가를 수 없기 때문이다. auto memory는 `install`이 끈다(#설치).
 
 Claude Code 밖에서도 쓴다는 요구를 둔다. Claude Code부터 만들고 Codex는 만들지 않는다. 겨누는 크기는 만든 사람 자신이 auto memory를 끄고 이 도구로 일하는 것이다.
 
@@ -55,11 +57,17 @@ Claude Code 밖에서도 쓴다는 요구를 둔다. Claude Code부터 만들고
 
 첫째·둘째·넷째 테스트는 (가) 사람이 시키거나 기록하지 않았는데 자료가 정해진 자리에 남았고 (나) 사람이 그 자리를 눈으로 읽기만 해서 답할 수 있어야 통과다. 눈으로 읽는 것은 파일 열기, `ls`, 터미널 화면이다. `grep`·`jq` 같은 검색이나 가공이 필요하거나 `/context`를 불러야 하면 실패다. 셋째 테스트는 사람이 한 번 시킨 말로 끝나야 통과이고, 다른 기억은 그대로여야 한다. 답은 정답과 같을 때만 통과이고 시간이나 건수는 곁에만 적는다.
 
-넷째 걸린 곳은 load 쪽만 잰다. 세션 도중 기억을 읽는 일(recall)은 재지 않는다. 관찰 테스트는 둘이고, 새 저장소가 `layer-rules` 없이 제 기억을 받는지와, 기억이 커져도 필요한 것이 모델에게 닿는지다.
+넷째 걸린 곳은 load 쪽만 잰다. 세션 도중 기억을 읽는 일(recall)은 재지 않는다. 관찰 테스트는 둘이고, 새 저장소가 `path-map` 없이 제 기억을 받는지와, 기억이 커져도 필요한 것이 모델에게 닿는지다.
 
 판정 방식은 테스트마다 둘 중 하나다. 스크립트 판정은 세션 전후의 기억 폴더를 봉한 정답과 견준다. 사람 판정은 사람이 답안지(html 한 장)에서 칸마다 파일 원문을 읽고 답을 적는 것이고, 정답과 같을 때만 통과다. 읽기 어려움(쉬움·걸림·못 찾음)과 걸린 시간은 곁에만 적고 판정에 넣지 않는다. 판단이 알맞은지도 판정에 넣지 않고 로그를 사람이 훑어 본다.
 
 테스트는 빈 폴더를 HOME으로 둔 격리 환경에서 돌린다. 사용자는 이 격리 HOME에서 login을 한 번 한다. 시험마다 새 저장소 폴더를 만드는데, Claude Code의 기억 폴더가 저장소 경로에서 정해져서 기억 폴더가 빈 채로 시작한다. 실험 세션이 실제 home을 건드리지 못하게 PreToolUse hook(도구를 부르기 전에 도는 hook)이 막는다.
+
+테스트를 돌리는 쪽은 이 도구에 시키는 테스트를 돌리기 전에 격리 HOME에 `install`을 돌리고, `claude -p` 세션 하나로 설치가 통하는지를 본다. 보는 것은 여섯이다: hook이 넣은 글이 모델에게 가는 첫 요청에 들었는지, `~/.mem`에 쓰기가 거부되지 않는지, `mem-file` 호출이 거부되지 않는지, 로그에 줄이 남는지, auto memory의 지시가 모델에게 가는 요청에 없는지, `path-map` 고치기가 거부되지 않는지.
+
+설치 확인은 항목마다 통과나 실패를 한 줄씩 찍고, 실패한 항목은 기대한 것과 실제로 본 것을 함께 찍어 무엇을 고칠지 알게 한다. 항목의 세부는 아직 정하지 않았다.
+
+설치 확인이 하나라도 실패하면 테스트를 돌리는 쪽은 이 도구에 시키는 테스트를 돌리지 않고 멈춘다. 설정이 통하지 않은 것을 이 도구의 실패로 세지 않기 위해서다. auto memory에 시키는 테스트는 `install`이 더한 설정이 없는 격리 HOME에서 돌린다. 격리 HOME 하나로 두 쪽을 돌리는 법은 아직 정하지 않았다.
 
 심을 기억(fixture)은 저장소의 테스트 폴더에 두고, 정답은 저장소 밖에 봉한다. 실험 세션은 정답을 읽지 못한다. 실제 기억을 옮긴 fixture는 개인 내용이 들면 저장소에 올리지 않는 자리에 두고, 그 테스트는 다른 기기에서 다시 돌리지 못한다. 실제 기억은 사람이 손으로 옮기지 않고 LLM에게 시켜 복사한다.
 
@@ -71,7 +79,7 @@ Claude Code 밖에서도 쓴다는 요구를 둔다. Claude Code부터 만들고
 
 ### `~/.mem`의 모양
 
-`~/.mem` 아래에 곳 셋과 파일 둘이 나란히 있다. 규칙 파일만 `~/.mem-hook`에 있다. 아래 그림은 이 자리를 보인다.
+`~/.mem` 아래에 곳 셋과 파일 둘이 나란히 있다. 스크립트 셋과 경로 표는 `~/.mem-hook`에 있다. 아래 그림은 이 자리를 보인다.
 
 ```
 ~/.mem/
@@ -80,7 +88,11 @@ Claude Code 밖에서도 쓴다는 요구를 둔다. Claude Code부터 만들고
   hold/         보류
   glossary.md   기억 용어집. 변환하는 에이전트가 읽는다. 세션 시작에 load하지 않는다
   criteria.md   기억 기준. hook이 읽어 preamble과 함께 실어 준다
-~/.mem-hook/layer-rules
+~/.mem-hook/
+  load-hook     세션 시작에 load하는 hook
+  log-hook      쓰기 호출을 로그에 적는 hook
+  mem-file      ~/.mem 안의 파일을 옮기고 지우는 스크립트
+  path-map      경로 표
 ```
 
 `sorted/` 안은 layer tree다. 폴더가 폴더를 품고, `sorted/` 뿌리에 놓인 md가 전역 항목이어서 모든 세션이 받는다. layer 이름은 사람이 붙이고 기억 용어집이 지킨다. 아래 그림에서 `work`·`api`·`web`과 파일 이름은 예시다.
@@ -135,11 +147,11 @@ Claude Code 밖에서도 쓴다는 요구를 둔다. Claude Code부터 만들고
 
 변환 전 원문은 읽기 전용 파일로 로그 옆에 보관하고, 변환 뒤에도 원문과 변환본을 견주어 본다. 보관 자리는 아직 정하지 않았다.
 
-### layer 규칙
+### 경로 표
 
-layer 규칙은 작업 위치를 layer에 잇는 규칙이다. 열쇠는 작업 위치다. 의미로 나누는 일은 layer 이름이 맡고, 고르는 일은 작업 위치가 맡는다.
+경로 표는 작업 위치를 layer에 잇는 표다. 열쇠는 작업 위치다. 의미로 나누는 일은 layer 이름이 맡고, 고르는 일은 작업 위치가 맡는다.
 
-규칙은 `~/.mem-hook/layer-rules` 파일 하나에 `<layer>: <경로>` 줄로 적는다. layer는 `~/.mem/sorted` 안의 폴더 경로여서, `work/api`는 `~/.mem/sorted/work/api/`다. 파일이 `~/.mem` 옆에 놓여서 `ls -a ~`에서 함께 보인다. `~/.config` 아래에 두면 `XDG_CONFIG_HOME`을 따를지를 더 정해야 하고, 따르면 환경에 따라 자리가 달라진다.
+경로 표는 `~/.mem-hook/path-map` 파일 하나에 `<layer>: <경로>` 줄로 적는다. layer는 `~/.mem/sorted` 안의 폴더 경로여서, `work/api`는 `~/.mem/sorted/work/api/`다. 파일이 `~/.mem` 옆에 놓여서 `ls -a ~`에서 함께 보인다. `~/.config` 아래에 두면 `XDG_CONFIG_HOME`을 따를지를 더 정해야 하고, 따르면 환경에 따라 자리가 달라진다.
 
 한 작업 위치에 줄이 여럿 맞을 수 있다. 맞는 layer가 서로 품지 않아도 실패가 아니다. 세션이 받는 layer는 작업 위치에 맞는 layer 전부와 그 layer를 품는 layer 전부를 합친 것이고, 순서와 우선순위가 없다. 전역은 줄에 적지 않고 모든 세션이 받는다.
 
@@ -169,7 +181,7 @@ oss/lib: ~/workspace/work/shared-lib
 - 작업 위치가 줄의 경로와 같거나 그 아래에 있으면 그 줄의 layer가 맞는다. 폴더 이름 단위로 맞춘다(`~/workspace/work`는 `~/workspace/work-old`에 맞지 않는다).
 - 이 기기에 없는 경로는 풀어 보지 않는다. 없는 경로를 적은 줄은 어떤 세션에도 맞지 않는다. 작업 위치는 이 기기에 있는 폴더여서, 없는 경로를 적은 줄은 맞을 세션이 없기 때문이다.
 - 줄의 순서에는 뜻이 없고 빈 줄은 건너뛴다. `#`로 시작하는 줄은 건너뛴다.
-- `layer-rules`가 없는 것은 실패가 아니고 전역만 load한다. 처음 설치한 기기의 상태이기 때문이다.
+- `path-map`이 없는 것은 실패가 아니고 전역만 load한다. 처음 설치한 기기의 상태이기 때문이다.
 - 줄이 가리키는 layer 폴더가 `sorted/`에 없는 것도 실패가 아니고 빈 layer로 본다. 첫 기억을 쓰기 전인 layer의 상태이기 때문이다. hook은 폴더를 만들지 않는다.
 
 읽지 못하는 줄이 있으면 hook은 그 줄만 건너뛰고 나머지 줄은 적용하며, 세션 시작 줄에 읽지 못한 줄을 알린다. 읽지 못하는 줄은 아래 넷이다.
@@ -183,40 +195,89 @@ Claude Code에서 hook은 작업 위치를 환경 변수 `CLAUDE_PROJECT_DIR`에
 
 Claude Code의 hooks 문서는 `CLAUDE_PROJECT_DIR`을 "the project root where the session started"라고 적고, `cwd`를 "Current working directory when the hook is invoked"라고 적는다. `SessionStart` hook의 입력 JSON에 세션을 연 폴더를 주는 필드는 그 문서의 필드 목록에 없다.
 
-새 저장소는 규칙에 한 번 적은 경로 아래에 만들기만 하면 규칙을 고치지 않아도 제 layer에 든다.
+새 저장소는 경로 표에 한 번 적은 경로 아래에 만들기만 하면 경로 표를 고치지 않아도 제 layer에 든다.
 
 ### 누가 무엇을 하나
 
-아래 표는 사람, 에이전트, hook, 옮기고 지우는 스크립트가 하는 일과 하지 않는 일을 보인다.
+아래 표는 사람, 에이전트, hook, `mem-file`, `install`이 하는 일과 하지 않는 일을 보인다.
 
 | 누가 | 하는 일 | 하지 않는 일 |
 |---|---|---|
-| 사람 | layer 규칙을 정한다. 기억 기준과 기억 용어집을 고칠 일, 요청할 기억, 보류를 채울 내용, 고치거나 지울 일, 기억의 layer를 바꿀 일을 에이전트에게 말로 시킨다. `~/.mem`과 세션 시작 줄을 기존 markdown 뷰어와 터미널로 보고 로그를 훑는다 | 기억 파일을 손으로 쓰거나 옮기지 않는다. 권한 설정을 기억해서 손으로 적지 않는다 |
-| 에이전트 | preamble을 받은 세션에서 요청받은 것과 기억 기준으로 고른 것을 원문으로 쓴다. 넘김 기준 검사, 변환, 분류를 하고 새 이름을 기억 용어집에 더한다. `~/.mem`의 파일을 harness의 파일 쓰기·고치기 도구로 쓰고 고친다. 파일을 옮기거나 지울 때는 옮기고 지우는 스크립트를 부른다. 에이전트가 적는 로그 줄을 쓴다 | 지시 파일(CLAUDE.md·AGENTS.md)을 건드리지 않는다. 사람을 부르지 않는다. 폴더를 따로 만들지 않는다 |
-| hook | load하고 세션 시작 줄을 띄운다. 쓰기 호출을 로그에 적는다 | 항목을 바꾸지 않는다. 무엇을 save할지 판단하지 않는다. 사람을 부르지 않는다 |
-| 옮기고 지우는 스크립트 | `~/.mem` 안의 파일 하나를 `~/.mem` 안의 다른 자리로 옮긴다. 놓을 폴더가 없으면 만든다. `~/.mem` 안의 파일 하나를 지운다 | `~/.mem` 밖의 경로를 받지 않는다. 있는 파일을 덮어쓰지 않는다. 파일의 내용을 읽거나 바꾸지 않는다. 폴더를 통째로 옮기거나 지우지 않는다. 어디에 놓을지와 지울지를 판단하지 않는다 |
+| 사람 | 경로 표를 정한다. 기억 기준과 기억 용어집을 고칠 일, 요청할 기억, 보류를 채울 내용, 고치거나 지울 일, 기억의 layer를 바꿀 일을 에이전트에게 말로 시킨다. `~/.mem`과 세션 시작 줄을 기존 markdown 뷰어와 터미널로 보고 로그를 훑는다 | 기억 파일을 손으로 쓰거나 옮기지 않는다. 권한 설정을 기억해서 손으로 적지 않는다 |
+| 에이전트 | preamble을 받은 세션에서 요청받은 것과 기억 기준으로 고른 것을 원문으로 쓴다. 넘김 기준 검사, 변환, 분류를 하고 새 이름을 기억 용어집에 더한다. `~/.mem`의 파일을 harness의 파일 쓰기·고치기 도구로 쓰고 고친다. 파일을 옮기거나 지울 때는 `mem-file`을 부른다. 에이전트가 적는 로그 줄을 쓴다 | 지시 파일(CLAUDE.md·AGENTS.md)을 건드리지 않는다. 사람을 부르지 않는다. 폴더를 따로 만들지 않는다 |
+| hook | `load-hook`이 load하고 세션 시작 줄을 띄운다. `log-hook`이 쓰기 호출을 로그에 적는다 | 항목을 바꾸지 않는다. 무엇을 save할지 판단하지 않는다. 사람을 부르지 않는다 |
+| `mem-file` | `~/.mem` 안의 파일 하나를 `~/.mem` 안의 다른 자리로 옮긴다. 놓을 폴더가 없으면 만든다. `~/.mem` 안의 파일 하나를 지운다 | `~/.mem` 밖의 경로를 받지 않는다. 있는 파일을 덮어쓰지 않는다. 파일의 내용을 읽거나 바꾸지 않는다. 폴더를 통째로 옮기거나 지우지 않는다. 어디에 놓을지와 지울지를 판단하지 않는다 |
+| `install` | `~/.mem`의 곳 셋과 `~/.mem-hook`을 만든다. `load-hook`, `log-hook`, `mem-file`을 `~/.mem-hook/`에 복사한다. Claude Code의 user settings에 없는 줄만 더하고 auto memory를 끈다. 항목마다 한 일을 한 줄씩 찍는다 | `path-map`과 기억 파일을 만들지 않는다. 이 도구를 걷어 내지 않는다 |
 
 에이전트가 `~/.mem` 안의 일을 하는 도구, 권한, 세션은 아래와 같다.
 
 - **쓰고 고치는 도구**: harness의 파일 쓰기·고치기 도구는 Claude Code에서는 `Write`와 `Edit`이다. Claude Code의 `Write`는 없는 부모 폴더를 함께 만든다(Claude Code 2.1.325에서 확인).
-- **Claude Code의 권한 설정**: user settings의 `permissions.additionalDirectories`에 `~/.mem`을 더하고, `permissions.allow`에 `Edit(~/.mem/**)`와 옮기고 지우는 스크립트를 부르는 `Bash` allow rule을 둔다. 이 셋이 있으면 에이전트가 스스로 하는 `~/.mem` 안의 일은 permission mode를 가리지 않고 사람에게 묻지 않고 실행된다(Claude Code 2.1.325의 `claude -p`에서 Manual, auto, `dontAsk`로 확인).
-- **권한 설정을 쓰는 쪽**: Claude Code의 allow rule과 에이전트가 부르는 명령은 철자가 글자로 맞아야 한다. 권한 설정은 설치가 쓰고, 사람은 설정을 기억해서 손으로 적지 않는다. 설치의 모양과 rule의 철자는 아직 정하지 않았다.
-- **직접 부른 `mv`·`rm`**: 에이전트가 shell의 `mv`나 `rm`을 직접 부르는 것은 따로 막지 않는다. 스크립트를 거치지 않은 옮김이 확인되면 hook으로 막는 것을 얹는다.
-- **거부되거나 실패한 스크립트 호출**: 에이전트는 다시 시도하지 않고 다른 길로 돌아가지 않는다. 파일을 있던 자리에 두고, 그 세션의 답에 한 줄로 알린다. 알리는 줄의 모양은 아직 정하지 않았다.
+- **Claude Code의 권한 설정**: user settings의 `permissions.additionalDirectories`에 `~/.mem`을 더하고, `permissions.allow`에 `Edit(~/.mem/**)`와 `mem-file`을 부르는 `Bash` allow rule을 둔다. 이 셋이 있으면 에이전트가 스스로 하는 `~/.mem` 안의 일은 permission mode를 가리지 않고 사람에게 묻지 않고 실행된다(Claude Code 2.1.325의 `claude -p`에서 Manual, auto, `dontAsk`로 확인).
+- **권한 설정을 쓰는 쪽**: Claude Code의 allow rule과 에이전트가 부르는 명령은 철자가 글자로 맞아야 한다. 권한 설정은 `install`이 쓰고, 사람은 설정을 기억해서 손으로 적지 않는다. `install`이 쓰는 줄과 rule의 철자는 #설치에 적는다.
+- **`path-map`의 권한**: `permissions.allow`에 `Edit(~/.mem-hook/path-map)`을 두어, 에이전트가 `path-map`을 고칠 때 Claude Code가 사람에게 묻지 않게 한다. 사람의 개입을 최소로 하고, 고친 것은 로그에 남겨 되돌릴 수 있게 한다. rule은 이 파일 하나만 가리켜서 같은 폴더의 스크립트는 열지 않는다. 이 rule 한 줄로 묻지 않고 고쳐지는지는 아직 확인하지 않았다. 앞 항목의 확인은 `~/.mem`에 `additionalDirectories`와 `Edit(~/.mem/**)`를 함께 둔 경우다. 로그에 무엇을 남기는지와 경로 표의 줄을 누가 적는지는 아직 정하지 않았다.
+- **직접 부른 `mv`·`rm`**: 에이전트가 shell의 `mv`나 `rm`을 직접 부르는 것은 따로 막지 않는다. `mem-file`을 거치지 않은 옮김이 확인되면 hook으로 막는 것을 얹는다.
+- **거부되거나 실패한 `mem-file` 호출**: 에이전트는 다시 시도하지 않고 다른 길로 돌아가지 않는다. 파일을 있던 자리에 두고, 그 세션의 답에 한 줄로 알린다. 알리는 줄의 모양은 아직 정하지 않았다.
 - **쓰는 세션**: preamble을 받은 세션은 쓴다. 대화형 세션, 사람 없이 한 번 돌고 끝나는 세션(Claude Code의 `claude -p`), 터미널에서 떼어 돌리는 세션(Claude Code의 background 세션)을 가르지 않는다.
 - **subagent**: subagent(주 세션이 일을 맡기려고 띄우는 에이전트)에는 아무것도 더하지 않는다. subagent는 preamble과 기억 기준을 받지 않아서 판단으로 쓰지 않고, subagent의 보고에 든 것을 주 세션이 판단해 쓴다. 그렇게 쓴 기억의 출처는 판단이다. 주 세션이 기억 정리를 subagent에게 맡기면 subagent도 같은 도구로 쓴다. subagent가 알았지만 보고에 없어서 기억에서 빠지는 일이 확인되면, subagent가 시작할 때 글을 넣는 길을 얹는다.
 - **Claude Code의 subagent**: 주 세션의 `SessionStart` hook이 넣은 글은 subagent에게 가지 않는다. subagent 안의 도구 호출에도 hook이 돌고, hook 입력에 `agent_id`와 `agent_type`이 붙는다. 둘 다 Claude Code 2.1.325에서 확인한 것이다.
 
+### 설치
+
+저장소 뿌리의 Python 3 스크립트 `install`이 이 도구를 기기에 놓는다. 사람은 에이전트에게 설치하라고 시키거나 아래 명령을 직접 돌린다.
+
+```
+python3 install
+```
+
+`install`은 home을 환경 변수 `HOME`에서 읽어서, 실제 home과 테스트의 격리 HOME을 같은 스크립트로 설치한다(`HOME=<격리 HOME> python3 install`). 여러 번 돌려도 결과가 같다. 걷어 내는 기능은 두지 않고, 이 도구를 걷어 낼 일이 생길 때 얹는다.
+
+아래 표는 `install`이 건드리는 것과 거기에 하는 일을 보인다.
+
+| 건드리는 것 | 하는 일 |
+|---|---|
+| `~/.mem/sorted`, `~/.mem/unsorted`, `~/.mem/hold`, `~/.mem-hook` | 폴더를 만든다 |
+| `~/.mem-hook/` 안의 `load-hook`, `log-hook`, `mem-file` | 저장소의 스크립트를 복사하고, 이미 있으면 덮어쓴다 |
+| Claude Code의 user settings(`~/.claude/settings.json`) | 없는 줄만 더하고 `autoMemoryEnabled`를 `false`로 쓴다. 바꿀 것이 있을 때는 고치기 전의 `settings.json`을 그 옆에 사본 하나로 둔다 |
+
+`install`은 항목마다 "만듦"이나 "이미 있음"을 한 줄씩 찍는다. `path-map`은 만들지 않는다. `path-map`이 없는 것이 처음 설치한 기기의 상태이기 때문이다. `glossary.md`와 `criteria.md`를 `install`이 놓는지는 아직 정하지 않았다.
+
+스크립트 셋을 `~/.mem-hook/`에 복사해 두면 설정과 preamble이 가리키는 경로가 저장소 clone의 자리와 무관해서, clone을 옮기거나 다른 브랜치를 checkout해도 hook이 돈다. 스크립트를 고친 뒤에는 `install`을 다시 돌린다.
+
+`install`이 user settings에 더하는 줄은 아래와 같다.
+
+```json
+"hooks": {
+  "SessionStart": [{ "hooks": [{ "type": "command", "command": "python3 \"$HOME/.mem-hook/load-hook\"" }] }],
+  "PostToolUse":  [{ "matcher": "Write|Edit", "hooks": [{ "type": "command", "command": "python3 \"$HOME/.mem-hook/log-hook\"" }] }]
+},
+"permissions": {
+  "additionalDirectories": ["~/.mem"],
+  "allow": [
+    "Edit(~/.mem/**)",
+    "Bash(python3 <home의 절대 경로>/.mem-hook/mem-file *)",
+    "Edit(~/.mem-hook/path-map)"
+  ]
+},
+"autoMemoryEnabled": false
+```
+
+- **경로의 철자**: hook 명령 둘은 `$HOME`으로 적고, `Bash` allow rule만 home의 절대 경로로 적는다. Claude Code의 allow rule과 에이전트가 부르는 명령은 철자가 글자로 맞아야 하고, preamble이 절대 경로로 명령을 이르기 때문이다. 에이전트가 부르는 명령은 `python3 <home의 절대 경로>/.mem-hook/mem-file mv <옮길 파일> <놓을 자리>`와 `python3 <home의 절대 경로>/.mem-hook/mem-file rm <지울 파일>`이다.
+- **`SessionStart`**: matcher를 두지 않는다. resume과 `fork`에서 load하는지가 정해져도 설정을 다시 쓰지 않기 위해서다. load할지는 `load-hook`이 가른다(#1단계가 load하는 방식).
+- **`PostToolUse`**: `log-hook`은 matcher `Write|Edit`로 건다. 도구 호출마다 `python3`를 띄우지 않기 위해서다. `mem-file` 호출을 `log-hook`이 적기로 정해지면 matcher에 `Bash`를 더한다. `mem-file` 호출을 `log-hook`이 적는지는 아직 정하지 않았다.
+- **`permissions`**: 줄마다 무엇을 묻지 않게 하는지는 #누가 무엇을 하나에 적는다.
+- **auto memory**: 세션 도중에 끈 것은 그 대화에 걸리지 않아서, 설치한 뒤 새로 여는 세션부터 꺼진다. 이미 있는 auto memory의 기억 파일은 지워지지 않는다.
+- **설정이 빠진 것**: `install`은 한 일을 찍기만 한다. 그 줄이 Claude Code에서 통하는지는 테스트의 설치 확인이 본다(#기능). `load-hook`이 세션마다 설정을 읽어 빠진 것을 세션 시작 줄에 띄우는 것은, 설치 뒤에 설정이 빠진 채 돈 세션이 확인될 때 얹는다.
+
 ### 1단계가 load하는 방식
 
-`mem-hook`이 `SessionStart` hook으로 돈다. 작업 위치로 받는 layer를 찾고, preamble, `criteria.md`, 전역부터 받는 layer까지 각 layer의 항목을 그 순서로 이어 `additionalContext`로 넣고, 세션 시작 줄을 `systemMessage`로 띄운다. preamble은 hook이 기억 앞에 붙이는 지시 글이다. `sorted/` 밖(`unsorted/`, `hold/`, `glossary.md`)은 load하지 않는다.
+`load-hook`이 `SessionStart` hook으로 돈다. 작업 위치로 받는 layer를 찾고, preamble, `criteria.md`, 전역부터 받는 layer까지 각 layer의 항목을 그 순서로 이어 `additionalContext`로 넣고, 세션 시작 줄을 `systemMessage`로 띄운다. preamble은 hook이 기억 앞에 붙이는 지시 글이다. `sorted/` 밖(`unsorted/`, `hold/`, `glossary.md`)은 load하지 않는다.
 
-- **preamble**: 첫 문장은 load된 기억이 지시 파일과 사용자가 말하지 않을 때만 따르는 기본값이라고 이른다. 기억이 지시 파일이나 사용자 말과 부딪힐 때의 기준이다. 기억을 다루는 규칙(쓸 곳의 경로, 옮기고 지우는 스크립트를 부르는 법)은 preamble이 직접 이른다. 경로는 hook이 home을 풀어 절대 경로로 적는다. Claude Code의 `Write`와 `Edit`은 절대 경로를 받는데, 모델이 `~`를 스스로 풀면 실제 home과 다른 경로를 넣는 일이 있어서다. 이 규칙을 적는 문장과 나머지 글(판단·넘김·변환·분류·로그를 어떻게 하라는 지시)은 아직 정하지 않았다.
-- **시점**: startup·clear·compact에서 돈다. resume에서는 돌지 않는다. `fork`로 시작할 때와 resume 때의 시점은 아직 정하지 않았다.
+- **preamble**: 첫 문장은 load된 기억이 지시 파일과 사용자가 말하지 않을 때만 따르는 기본값이라고 이른다. 기억이 지시 파일이나 사용자 말과 부딪힐 때의 기준이다. 기억을 다루는 규칙(쓸 곳의 경로, `mem-file`을 부르는 법)은 preamble이 직접 이른다. 경로는 hook이 home을 풀어 절대 경로로 적는다. Claude Code의 `Write`와 `Edit`은 절대 경로를 받는데, 모델이 `~`를 스스로 풀면 실제 home과 다른 경로를 넣는 일이 있어서다. 이 규칙을 적는 문장과 나머지 글(판단·넘김·변환·분류·로그를 어떻게 하라는 지시)은 아직 정하지 않았다.
+- **시점**: Claude Code는 시작 방식마다 `load-hook`을 부르고, `load-hook`이 hook 입력의 시작 방식을 읽어 load할지 가른다. startup·clear·compact에서 load하고 resume에서는 load하지 않는다. `fork`로 시작할 때와 resume 때의 시점은 아직 정하지 않았다.
 - **10,000자 넘음**: 상한 없이 다 넣고 세션 시작 줄에 `10,000자 넘음`을 붙인다. Claude Code는 넣는 글이 10,000자를 넘으면 그 글을 파일로 돌리고, 모델에게는 그 파일의 경로와 앞 2,000자까지의 미리보기만 준다. Claude Code는 모델에게 그 파일을 읽으라고 시키지 않는다. 그때는 세션 시작 줄이 모델이 받은 것과 다르다. 넘칠 때 색인으로 가는지는 아직 정하지 않았다.
 - **md가 아닌 파일**: `sorted/` 안에서 load하지 않고 세션 시작 줄에 이름을 띄운다. 줄의 모양은 아직 정하지 않았다.
 
-세션 시작 줄에는 load한 파일 목록(예: `실림: style.md, work/api-naming.md (1,240자)`), 보류와 미분류 건수, `10,000자 넘음`, 읽지 못한 layer 규칙 줄, md가 아닌 파일의 이름을 띄운다. 줄의 모양은 아직 정하지 않았다.
+세션 시작 줄에는 load한 파일 목록(예: `실림: style.md, work/api-naming.md (1,240자)`), 보류와 미분류 건수, `10,000자 넘음`, 읽지 못한 경로 표 줄, md가 아닌 파일의 이름을 띄운다. 줄의 모양은 아직 정하지 않았다.
 
 ### 기억 용어집과 기억 기준
 
@@ -254,7 +315,7 @@ Claude Code의 hooks 문서는 `CLAUDE_PROJECT_DIR`을 "the project root where t
 |---|---|---|
 | 기억의 원본은 `~/.mem/` 아래 사람이 읽는 md 파일이고, 서버나 DB는 두지 않는다 | 사람과 에이전트가 같은 원본을 `ls`·`grep`·에디터로 본다 | 원본을 보는 길이 서버나 DB를 여는 도구로 좁아진다 |
 | load는 hook이 세션 시작에 한다. 에이전트의 자발적 호출에 맡기지 않는다 | 무엇이 load되는지가 모델 판단에 달리지 않는다 | load가 매번 일어난다는 보장 |
-| hook과 옮기고 지우는 스크립트는 상주 프로세스 없이 파일만 다루는 스크립트로 둔다 | 죽을 프로세스가 없고 한 사람이 전체를 읽는다 | 프로세스가 죽으면 load가 빠진다 |
+| hook과 `mem-file`은 상주 프로세스 없이 파일만 다루는 스크립트로 둔다 | 죽을 프로세스가 없고 한 사람이 전체를 읽는다 | 프로세스가 죽으면 load가 빠진다 |
 | load된 파일 목록과 보류·미분류 건수를 세션 시작 줄로 터미널에 띄운다 | 사람이 묻지 않아도 이번 세션의 재료를 안다 | 사람이 묻지 않으면 무엇이 load됐는지 알 수 없다 |
 | layer 이름과 낱말의 뜻은 기억 용어집 한 곳이 정한다 | 같은 사실에 이름이 둘 생기지 않는다 | 이름이 어긋난 기억을 찾기 어려워진다 |
 
