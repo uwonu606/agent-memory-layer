@@ -21,6 +21,8 @@ with open(os.path.join(out_dir, "pretool.jsonl"), "a", encoding="utf-8") as f:
         "time": time.strftime("%H:%M:%S"),
         "tool": hook_input.get("tool_name"),
         "permission_mode": hook_input.get("permission_mode"),
+        "agent_id": hook_input.get("agent_id"),
+        "agent_type": hook_input.get("agent_type"),
         "cwd": hook_input.get("cwd"),
         "tool_input": hook_input.get("tool_input"),
         "decision": decision,

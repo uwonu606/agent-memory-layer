@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+import os
+import sys
+
+MEM = os.path.realpath(os.path.expanduser("~/.mem"))
+
+
+def inside_mem(path):
+    resolved = os.path.realpath(os.path.expanduser(path))
+    if not resolved.startswith(MEM + os.sep):
+        sys.exit(f"거부: {path} 는 {MEM} 밖이다")
+    return resolved
+
+
+def move(source, destination):
+    source, destination = inside_mem(source), inside_mem(destination)
+    if not os.path.isfile(source):
+        sys.exit(f"거부: {source} 가 없다")
+    if os.path.exists(destination):
+        sys.exit(f"거부: {destination} 가 이미 있다")
+    os.makedirs(os.path.dirname(destination), exist_ok=True)
+    os.rename(source, destination)
+    print(f"옮김: {source} -> {destination}")
+
+
+def remove(path):
+    path = inside_mem(path)
+    if not os.path.isfile(path):
+        sys.exit(f"거부: {path} 가 없다")
+    os.remove(path)
+    print(f"지움: {path}")
+
+
+COMMANDS = {"mv": (move, 2), "rm": (remove, 1)}
+
+if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS or len(sys.argv) - 2 != COMMANDS[sys.argv[1]][1]:
+    sys.exit("쓰는 법: mem-file mv <옮길 파일> <놓을 자리> | mem-file rm <지울 파일>")
+COMMANDS[sys.argv[1]][0](*sys.argv[2:])

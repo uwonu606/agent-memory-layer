@@ -9,6 +9,7 @@ HOOKS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 parser = argparse.ArgumentParser(description="격리 home의 user settings를 실험용 hook과 넘겨받은 설정으로 다시 쓴다.")
 parser.add_argument("--matcher", help="SessionStart hook의 matcher. 없으면 모든 시작 방식에 건다")
 parser.add_argument("--no-session-hook", action="store_true", help="SessionStart hook을 걸지 않는다")
+parser.add_argument("--subagent-hook", action="store_true", help="SubagentStart hook을 건다")
 parser.add_argument("extra", nargs="*", help="settings에 합칠 JSON object")
 args = parser.parse_args()
 
@@ -18,6 +19,8 @@ if not args.no_session_hook:
     if args.matcher:
         entry["matcher"] = args.matcher
     settings["hooks"]["SessionStart"] = [entry]
+if args.subagent_hook:
+    settings["hooks"]["SubagentStart"] = [{"hooks": [{"type": "command", "command": f"python3 {HOOKS}/subagent-start.py"}]}]
 for extra in args.extra:
     settings.update(json.loads(extra))
 

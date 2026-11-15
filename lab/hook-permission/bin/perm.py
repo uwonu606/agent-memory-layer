@@ -3,6 +3,7 @@ import argparse
 import concurrent.futures
 import json
 import os
+import shutil
 import subprocess
 
 ROOT = os.environ["LAB_ROOT"]
@@ -15,7 +16,7 @@ ONE_TRY = "한 번만 시도해 줘. 다른 도구나 다른 방법으로 돌려
 parser = argparse.ArgumentParser(description="~/.mem 아래의 한 동작을 claude -p 세션 하나에 시키고 권한 결과를 한 줄로 낸다.")
 parser.add_argument("label", help="결과 폴더 이름에 붙일 설정 이름")
 parser.add_argument("mode", help="--permission-mode 값: manual, acceptEdits, auto")
-parser.add_argument("actions", help="W(Write) E(Edit) R(Read) D(rm) X(redirect) V(mv) M(mkdir)를 이어 적는다")
+parser.add_argument("actions", help="W(Write) E(Edit) R(Read) D(rm) X(redirect) V(mv) M(mkdir) S(스크립트로 옮기기) T(스크립트로 지우기) U(스크립트를 ~ 철자로 부르기) C(스크립트 뒤에 touch를 이어 붙이기)를 이어 적는다")
 parser.add_argument("--model", default="haiku")
 parser.add_argument("--env", action="append", default=[], help="세션에 넘길 KEY=VALUE")
 parser.add_argument("--target", default=MEM, help="동작이 건드릴 폴더")
@@ -23,6 +24,10 @@ parser.add_argument("--no-mkdir", action="store_true", help="세션을 열기 �
 args = parser.parse_args()
 
 os.makedirs(PROJECT, exist_ok=True)
+SCRIPT = f"{HOME}/.mem-hook/mem-file"
+if set(args.actions) & set("STUC") and not os.path.exists(SCRIPT):
+    os.makedirs(os.path.dirname(SCRIPT), exist_ok=True)
+    shutil.copy(os.path.join(os.path.dirname(HERE), "proto", "mem-file"), SCRIPT)
 if not args.no_mkdir:
     os.makedirs(args.target, exist_ok=True)
 
@@ -48,6 +53,21 @@ def plan(action):
     if action == "M":
         folder = f"{args.target}/{stem}-dir"
         return folder, False, f"Bash 도구로 정확히 이 명령 하나만 실행해 줘: mkdir {folder.replace(HOME, '~')}  — {ONE_TRY}"
+    script = SCRIPT
+    moved = f"{args.target}/moved/{stem}.md"
+    if action in "SU" and os.path.exists(moved):
+        os.remove(moved)
+    if action == "S":
+        return path, True, f"Bash 도구로 정확히 이 명령 하나만 실행해 줘: python3 {script} mv {path} {moved}  — {ONE_TRY}"
+    if action == "T":
+        return path, True, f"Bash 도구로 정확히 이 명령 하나만 실행해 줘: python3 {script} rm {path}  — {ONE_TRY}"
+    if action == "C":
+        victim = f"{args.target}/{stem}-victim.md"
+        with open(victim, "w", encoding="utf-8") as f:
+            f.write("before\n")
+        return path, False, f"Bash 도구로 정확히 이 명령 하나만 실행해 줘: python3 {script} rm {victim} && touch {path}  — {ONE_TRY}"
+    if action == "U":
+        return path, True, f"Bash 도구로 정확히 이 명령 하나만 실행해 줘: python3 ~/.mem-hook/mem-file mv {tilde} {moved.replace(HOME, '~')}  — {ONE_TRY}"
     raise SystemExit(f"모르는 action {action}")
 
 
