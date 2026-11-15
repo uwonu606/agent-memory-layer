@@ -1,0 +1,22 @@
+#!/bin/bash
+: "${LAB_ROOT:?LAB_ROOT에 실험 상태를 둘 폴더를 정한다}"
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+name=$1; dir=$2; shift 2
+export LAB_CASE=${LAB_CASE:-$name}
+mkdir -p "$LAB_ROOT/out/$LAB_CASE"
+script="$LAB_ROOT/out/$LAB_CASE/launch-$name.sh"
+{
+  echo '#!/bin/bash'
+  while IFS='=' read -r var _; do
+    case "$var" in LAB_*) printf 'export %s=%q\n' "$var" "${!var}" ;; esac
+  done < <(env)
+  for var in $LAB_FORWARD; do
+    printf 'export %s=%q\n' "$var" "${!var}"
+  done
+  printf 'cd %q\n' "$dir"
+  printf 'exec %q claude' "$here/iso"
+  printf ' %q' "$@"
+  echo
+} >"$script"
+chmod +x "$script"
+"$here/tm" start "$name" "$dir" "bash $script; echo; echo '[session ended]'; sleep 600"

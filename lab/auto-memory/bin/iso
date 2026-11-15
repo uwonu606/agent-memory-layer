@@ -1,0 +1,21 @@
+#!/bin/bash
+: "${LAB_ROOT:?LAB_ROOT에 실험 상태를 둘 폴더를 정한다}"
+claude_dir=$(dirname "$(command -v claude)")
+export LAB_REAL_HOME=${LAB_REAL_HOME:-$HOME}
+lab_vars=()
+while IFS='=' read -r name _; do
+  case "$name" in LAB_*) lab_vars+=("$name=${!name}") ;; esac
+done < <(env)
+for name in $LAB_FORWARD; do
+  [ -n "${!name}" ] && lab_vars+=("$name=${!name}")
+done
+exec env -i \
+  HOME="$LAB_ROOT/home" \
+  PATH="$claude_dir:/usr/local/bin:/usr/bin:/bin" \
+  TERM="${TERM:-xterm-256color}" \
+  LANG=C.UTF-8 \
+  USER="$(id -un)" \
+  SHELL=/bin/bash \
+  DISABLE_AUTOUPDATER=1 \
+  "${lab_vars[@]}" \
+  "$@"

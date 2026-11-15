@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import os
+
+ROOT = os.environ["LAB_ROOT"]
+HOOKS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks")
+LOGGED_EVENTS = ("SessionStart", "InstructionsLoaded", "SessionEnd")
+
+parser = argparse.ArgumentParser(description="격리 home의 user settings를 guard hook, 기록 hook, 넘겨받은 설정으로 다시 쓴다.")
+parser.add_argument("extra", nargs="*", help="settings에 합칠 JSON object")
+args = parser.parse_args()
+
+command = lambda name: {"hooks": [{"type": "command", "command": f"python3 {HOOKS}/{name}"}]}
+settings = {"hooks": {"PreToolUse": [command("pre-tool-guard.py")]}}
+for event in LOGGED_EVENTS:
+    settings["hooks"][event] = [command("log-event.py")]
+for extra in args.extra:
+    settings.update(json.loads(extra))
+
+os.makedirs(f"{ROOT}/home/.claude", exist_ok=True)
+with open(f"{ROOT}/home/.claude/settings.json", "w", encoding="utf-8") as f:
+    json.dump(settings, f, ensure_ascii=False, indent=2)
+print(json.dumps({k: v for k, v in settings.items() if k != "hooks"}, ensure_ascii=False))

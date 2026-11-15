@@ -1,0 +1,40 @@
+#!/bin/bash
+: "${LAB_ROOT:?LAB_ROOT에 실험 상태를 둘 폴더를 정한다}"
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+label=$1; workdir=$2; target=$3; shift 3
+mkdir -p "$target"
+printf -- '---\nname: probe\n---\n\n이 프로젝트는 매주 목요일에만 배포한다. 표지 낱말은 PROBE-FILE 이다.\n' >"$target/probe.md"
+rm -f "$target/new-note.md"
+declare -A prompts=(
+  [read]="Read 도구로 이 파일을 읽고 그 안의 표지 낱말을 적어 줘. 다른 도구는 쓰지 마: $target/probe.md"
+  [edit]="이 파일을 Read로 읽은 뒤 Edit 도구로 '목요일'을 '금요일'로 고쳐 줘. Bash는 쓰지 마: $target/probe.md"
+  [write]="Write 도구로 이 경로에 '시험'이라고 적힌 파일을 만들어 줘. Bash는 쓰지 마: $target/new-note.md"
+)
+for action in read edit write; do
+  LAB_CLIP=400 "$here/case" "$label-$action" "$workdir" "${prompts[$action]}" --model haiku "$@" >/dev/null
+  stream=$(sed -n 's/^exit=.* stream=//p' "$LAB_ROOT/out/$label-$action/last-run.txt")
+  python3 - "$stream" "$label" "$action" <<'PY'
+import json, sys
+calls, results, denials = [], [], []
+for line in open(sys.argv[1], encoding="utf-8"):
+    try:
+        event = json.loads(line)
+    except Exception:
+        continue
+    if event.get("type") == "assistant":
+        for block in event.get("message", {}).get("content", []):
+            if block.get("type") == "tool_use":
+                calls.append(block.get("name"))
+    elif event.get("type") == "user":
+        content = event.get("message", {}).get("content", [])
+        if not isinstance(content, str):
+            for block in content:
+                if block.get("type") == "tool_result":
+                    text = json.dumps(block.get("content"), ensure_ascii=False)
+                    results.append(("error: " + text[:150]) if block.get("is_error") else "ok")
+    elif event.get("type") == "result":
+        denials = [d.get("tool_name") for d in event.get("permission_denials", [])]
+print(f"{sys.argv[2]:<22} {sys.argv[3]:<6} calls={calls} results={results} denials={denials}")
+PY
+done
+echo "   남은 파일: $(grep -o '목요일\|금요일' "$target/probe.md" | head -1), new-note.md $( [ -f "$target/new-note.md" ] && echo 있음 || echo 없음 )"

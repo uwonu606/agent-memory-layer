@@ -1,0 +1,7 @@
+#!/bin/bash
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+name=$1; text=$2; lines=${3:-16}; timeout=${4:-120}
+"$here/tm" send "$name" "$text"
+sleep 2
+"$here/tm" settle "$name" 4 "$timeout"
+"$here/tm" cap "$name" | grep -v '^\s*$' | tail -n "$lines"

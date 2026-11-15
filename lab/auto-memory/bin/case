@@ -1,0 +1,27 @@
+#!/bin/bash
+: "${LAB_ROOT:?LAB_ROOT에 실험 상태를 둘 폴더를 정한다}"
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+export LAB_CASE=$1; dir=$2; prompt=$3; shift 3
+out="$LAB_ROOT/out/$LAB_CASE"
+mkdir -p "$out"
+"$here/runp" "$dir" "$prompt" --debug-file "$out/debug-$(date +%H%M%S).log" "$@" >"$out/last-run.txt" 2>&1
+stream=$(sed -n 's/^exit=.* stream=//p' "$out/last-run.txt")
+session=$(python3 -c "
+import json,sys
+for line in open(sys.argv[1], encoding='utf-8'):
+    try: e = json.loads(line)
+    except Exception: continue
+    if e.get('type') == 'system' and e.get('subtype') == 'init':
+        print(e['session_id']); break
+" "$stream")
+transcript=$(ls "$LAB_ROOT"/home/.claude/projects/*/"$session".jsonl 2>/dev/null | head -1)
+echo "$transcript" >"$out/transcript"
+grep -vE '^SYSTEM/hook_(started|response)|^     tools:' "$out/last-run.txt" | sed "s|$LAB_ROOT|<LAB>|g" | cut -c1-"${LAB_CLIP:-700}"
+python3 -c "
+import json,sys
+for line in open(sys.argv[1], encoding='utf-8'):
+    try: e = json.loads(line)
+    except Exception: continue
+    if e.get('type') == 'system' and e.get('subtype') == 'init':
+        print('memory_paths:', json.dumps(e.get('memory_paths'), ensure_ascii=False)); break
+" "$stream" | sed "s|$LAB_ROOT|<LAB>|g"

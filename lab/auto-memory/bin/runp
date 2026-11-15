@@ -1,0 +1,14 @@
+#!/bin/bash
+: "${LAB_ROOT:?LAB_ROOT에 실험 상태를 둘 폴더를 정한다}"
+: "${LAB_CASE:?LAB_CASE에 결과를 모을 폴더 이름을 정한다}"
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+dir=$1; prompt=$2; shift 2
+export LAB_CASE
+out="$LAB_ROOT/out/$LAB_CASE"
+mkdir -p "$out"
+stamp=$(date +%H%M%S)
+cd "$dir" || exit 1
+timeout "${LAB_TIMEOUT:-150}" "$here/iso" claude -p "$prompt" --output-format stream-json --verbose --include-hook-events "$@" \
+  >"$out/stream-$stamp.jsonl" 2>"$out/stderr-$stamp.txt"
+echo "exit=$? stream=$out/stream-$stamp.jsonl"
+python3 "$here/sum.py" "$out/stream-$stamp.jsonl"
