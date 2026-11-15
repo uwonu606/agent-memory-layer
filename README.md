@@ -1,6 +1,6 @@
 # agent-memory-layer
 
-코딩 에이전트가 쓰는 기억을 harness 밖의 markdown 파일에 두고, 세션을 연 작업 위치에 맞는 layer의 기억만 load하는 도구다. harness는 모델을 감싸 도구·hook·context를 붙여 주는 프로그램이고, 여기서는 Claude Code와 Codex를 말한다. hook은 harness가 정해진 시점에 부르는 스크립트다. layer는 기억 파일이 놓이는 폴더 하나다. 이 도구는 아직 만들지 않았다.
+코딩 에이전트가 쓰는 기억을 harness 밖의 markdown 파일에 두고, 세션을 연 폴더에 맞는 layer와 그것을 품는 layer의 기억만 load하는 도구다. harness는 모델을 감싸 도구·hook·context를 붙여 주는 프로그램이고, 여기서는 Claude Code와 Codex를 말한다. hook은 harness가 정해진 시점에 부르는 스크립트다. layer는 기억 파일이 놓이는 폴더 하나다. 이 도구는 아직 만들지 않았다.
 
 ## 문제
 
@@ -34,9 +34,9 @@
 
 ### 모양과 규칙을 고르는 기준
 
-전역과 그 안에 놓인 layer 전부를 layer tree라고 부른다. layer tree는 `~/.mem`에 놓이고, `~/.mem`에 다른 이름은 붙이지 않는다. 맥락 규칙은 작업 위치를 layer에 잇는 규칙이다. layer tree의 모양과 맥락 규칙은 아래 기준으로 고른다. 후보는 기준마다 통과하거나 실패한다.
+전역과 그 안에 놓인 layer 전부를 layer tree라고 부른다. layer tree는 `~/.mem`에 놓이고, `~/.mem`에 다른 이름은 붙이지 않는다. layer 규칙은 작업 위치를 layer에 잇는 규칙이다. layer tree의 모양과 layer 규칙은 아래 기준으로 고른다. 후보는 기준마다 통과하거나 실패한다.
 
-1. layer에 놓인 md 파일은 전부 load되고, md가 아닌 파일은 세션 시작 줄에 이름이 뜬다. 그래서 layer 바로 아래의 파일 목록은 그 layer에서 load된 목록과 세션 시작 줄에 뜬 이름을 합친 것과 같다. 맥락 규칙 파일과 log처럼 도구가 쓰는 파일은 layer가 아닌 자리에 있다. hook이 파일을 말없이 빼면 놓인 곳과 load되는 곳이 달라지기 때문이다.
+1. layer에 놓인 md 파일은 전부 load되고, md가 아닌 파일은 세션 시작 줄에 이름이 뜬다. 그래서 layer 바로 아래의 파일 목록은 그 layer에서 load된 목록과 세션 시작 줄에 뜬 이름을 합친 것과 같다. layer 규칙 파일과 log처럼 도구가 쓰는 파일은 layer가 아닌 자리에 있다. hook이 파일을 말없이 빼면 놓인 곳과 load되는 곳이 달라지기 때문이다.
 2. 세션은 target layer와 그것을 품는 layer를 전부 받는다. 여럿이 걸릴 때 우선순위로 가리거나 빼는 규칙이 없다. target layer만 load하면 저장소를 넘는 사실을 둘 자리가 없기 때문이다. 넓은 layer에 남긴 항목이 target layer가 더 좁은 세션에서 빠지면 세션 시작 줄에 보이지 않지만, 받는 글이 늘어나는 것은 넘음 표시로 보인다.
 3. 사람이 작업 위치와 규칙만 읽고, hook을 돌리지 않고 어느 layer가 load될지 맞힌다.
 4. 2~4단계를 얹을 때 load 규칙을 고치지 않는다. 뒤 단계는 파일과 폴더를 더하거나 항목을 옮기기만 한다. 1단계의 판정이 load 규칙에 걸려 있어서, load 규칙이 바뀌면 auto memory와 견준 결과를 다시 봐야 하기 때문이다.
@@ -64,36 +64,84 @@ layer의 이름과 깊이는 사람이 정하고, 저장소 하나에만 맞는 
 
 `~/.mem` 안에는 layer만 놓이고 도구가 정한 이름은 `~/.mem` 안에 없어서, 사람이 정한 이름이 도구가 정한 이름과 부딪힐 자리가 없다.
 
-도구가 쓰는 파일과 대체된 decision을 옮겨 둘 자리는 layer tree 밖에 둔다. 밖의 어느 경로인지는 아직 정하지 않았다.
+도구가 쓰는 파일과 대체된 decision을 옮겨 둘 자리는 layer tree 밖에 둔다.
 
-| layer tree 밖에 두는 것 | 경로를 정하는 때 |
+| layer tree 밖에 두는 것 | 경로 |
 |---|---|
-| 맥락 규칙 파일 | 맥락 규칙의 형식을 정할 때 |
-| log | 2단계를 얹을 때 |
-| 대체된 decision을 옮겨 둘 자리 | 3단계를 얹을 때 |
+| layer 규칙 파일 | `~/.mem-hook/layer-rules` |
+| log | 2단계를 얹을 때 정한다 |
+| 대체된 decision을 옮겨 둘 자리 | 3단계를 얹을 때 정한다 |
 
-기기마다 다른 값은 layer tree 밖에만 둔다. 1단계에서 기기마다 다른 값은 맥락 규칙 파일에만 있다.
+기기마다 다른 값은 layer tree 밖에만 둔다. 1단계에서 기기마다 다른 값은 layer 규칙 파일에만 있다.
 
 대체된 decision을 기억과 한 폴더로 옮겨야 하거나 `~/.mem` 바로 아래에 항목이 아닌 파일을 둬야 하면, #모양과 규칙을 고르는 기준의 7번에 따라 모양을 다시 본다.
 
-### 맥락 규칙
+### layer 규칙
 
-맥락 규칙은 `~/workspace/work/` 아래에서 연 세션을 `work` layer에 잇는 식으로 작업 위치를 layer에 잇는다. 이 경로와 이름은 예시다. hook은 작업 위치를 hook 입력의 `cwd`에서 읽는다.
+layer 규칙은 `~/.mem-hook/layer-rules` 파일 하나에 `<layer>: <경로>` 줄로 적는다. hook은 작업 위치를 품는 경로의 줄을 전부 찾고, 그 줄들이 가리키는 layer 가운데 가장 안쪽 layer를 target layer로 삼는다. 줄이 잇는 곳이 언제나 layer여서 이 규칙을 layer 규칙이라고 부른다.
 
-줄의 형식, 맥락 규칙 파일이 놓일 자리, 작업 위치에서 target layer를 찾는 방법은 아직 정하지 않았다. 정한 것은 아래 넷이고, 괄호 안은 #모양과 규칙을 고르는 기준의 번호다.
+아래에서 `work`·`work/api`와 경로는 예시다.
 
-- 사람이 맥락 규칙을 눈으로 읽어 target layer를 찾을 수 있어야 한다(기준 3).
-- 절대 경로처럼 기기마다 다른 값은 맥락 규칙에만 적고, 맥락 규칙은 layer tree 밖에 둔다(기준 6).
-- 작업 위치에 layer 여럿이 맞으면 hook은 우선순위로 가리지 않고 target layer와 그것을 품는 layer를 전부 load한다(기준 2).
-- 전역보다 좁은 layer가 맞지 않으면 hook은 전역만 load한다.
+```
+work: ~/workspace/work
+work: /mnt/c/workspace/work
+work/api: ~/workspace/work/api-server
+```
 
-맥락 규칙에 한 번 적은 경로는 그 아래 저장소 전부에 걸리므로, 새 저장소는 그 경로 아래에 만들기만 하면 규칙을 고치지 않아도 제 layer에 든다.
+| 세션을 연 폴더 | 맞는 layer | target layer | 세션이 받는 layer |
+|---|---|---|---|
+| `~/workspace/work/api-server/src` | `work`, `work/api` | `work/api` | 전역, `work`, `work/api` |
+| `~/workspace/work/web` | `work` | `work` | 전역, `work` |
+| `/mnt/c/workspace/work/web` | `work` | `work` | 전역, `work` |
+| `~/workspace/work-old` | 전역뿐이다 | 전역 | 전역 |
+| `~/notes` | 전역뿐이다 | 전역 | 전역 |
+
+작업 위치는 세션을 연 폴더다. 그래서 target layer가 세션 내내 같고, 사람이 세션을 연 폴더만 알면 load될 layer를 맞힌다. 이 도구는 Claude Code 밖에서도 쓸 것이어서, 작업 위치의 뜻에는 harness가 붙인 이름을 넣지 않는다.
+
+Claude Code에서 hook은 작업 위치를 환경 변수 `CLAUDE_PROJECT_DIR`에서 읽고, hook 입력의 `cwd`는 쓰지 않는다. `cwd`는 Claude가 `cd`하면 옮긴 폴더를 따라가서, `cwd`로 읽으면 compaction 뒤에 target layer가 바뀌기 때문이다.
+
+Claude Code의 hooks 문서는 `CLAUDE_PROJECT_DIR`을 "the project root where the session started"라고 적고, `cwd`를 "Current working directory when the hook is invoked"라고 적는다. `SessionStart` hook의 입력 JSON에 세션을 연 폴더를 주는 필드는 그 문서의 필드 목록에 없다.
+
+layer는 `~/.mem` 안의 폴더 경로여서 `work/api`는 `~/.mem/work/api/`다. 한 줄에 경로 하나를 적고, layer 하나에 경로가 여럿이면 같은 layer로 줄을 여럿 쓴다. 전역은 줄에 적지 않는다.
+
+경로는 `/`나 `~`로 시작한다. 줄에는 symlink를 지나지 않는 실제 경로만 적는다. hook은 줄 머리의 `~`를 home의 실제 경로로 푼다. 끝의 `/`는 있어도 없어도 같다. hook은 대소문자를 가른다. 이 기기에 없는 경로를 적은 줄은 어떤 세션에도 맞지 않는다.
+
+작업 위치가 줄의 경로와 같거나 그 아래에 있으면 그 줄의 layer가 작업 위치에 맞는다. hook은 폴더 이름 단위로 맞춰서 `~/workspace/work`는 `~/workspace/work-old`에 맞지 않는다. 전역은 모든 작업 위치에 맞아서, 맞는 줄이 없으면 target layer는 전역이다.
+
+hook은 가장 안쪽 layer를 찾을 때 경로의 길이를 견주지 않는다. 그래서 경로가 더 좁은 줄이 더 넓은 layer를 가리키면, 그 줄은 load되는 것을 바꾸지 않는다.
+
+줄의 순서에는 뜻이 없다. hook은 빈 줄을 건너뛴다. 주석은 없고, 줄에 까닭을 적어야 할 일이 생기면 hook이 `#`로 시작하는 줄을 건너뛰게 한다.
+
+| 규칙 | 값 | 까닭 |
+|---|---|---|
+| 파일의 자리 | `~/.mem-hook/layer-rules` | `~/.mem` 옆에 놓여서 `ls -a ~`에서 함께 보인다. `~/.config` 아래에 두면 `XDG_CONFIG_HOME`을 따를지를 더 정해야 하고, 따르면 환경에 따라 자리가 달라진다 |
+| 줄의 형식 | `<layer>: <경로>`. hook은 줄에서 처음 나오는 `: `(colon과 빈칸)에서 줄을 가르고, 그 뒤는 전부 경로로 읽는다 | 줄이 늘어나면 짧은 layer가 앞에 있는 쪽이 읽기 좋다. 경로를 뒤에 두면 경로에 빈칸이나 colon이 있어도 따옴표 없이 적는다 |
+| symlink | hook은 줄 머리의 `~`를 푸는 것 말고는 줄의 경로를 바꾸지 않고 작업 위치와 글자로 견준다 | Claude Code가 hook에 주는 작업 위치는 symlink를 푼 실제 경로다. 줄에도 실제 경로만 있으면 사람이 줄과 작업 위치를 글자로만 견주어 맞힌다. 경로가 symlink를 지나는 줄을 hook이 가려내지 않고 글자로만 견주면, 그 줄은 말없이 맞지 않는다. hook이 `~`를 home의 실제 경로로 풀지 않으면, home이 symlink 뒤에 있는 기기에서 `~`로 시작하는 줄이 전부 읽지 못하는 줄이 된다 |
+| 맞는 layer가 서로 품지 않을 때 | hook은 고르지 않는다. 전역만 load하고 실패를 알린다 | 경로가 긴 줄이 이기게 하면 우선순위 규칙이 하나 생기고, 넓은 줄의 layer가 빠진다. 맞는 layer를 전부 load하면 target layer가 둘이 되어 save할 곳을 가를 수 없다 |
+| 읽지 못하는 줄이 있을 때 | 하나라도 있으면 hook은 `layer-rules` 전체를 쓰지 않는다. 전역만 load하고 실패를 알린다 | 그 줄만 건너뛰면, 읽지 못한 줄이 이 세션에 맞는 줄이었는지 hook이 알 수 없어서 줄 하나가 빠진 채로 다른 target layer를 고를 수 있다 |
+| `layer-rules`가 없을 때 | 줄이 하나도 없는 것과 같아서 hook은 전역만 load하고, 실패로 보지 않는다 | `layer-rules`가 없는 것은 처음 설치한 기기의 상태다 |
+| 줄이 가리키는 layer의 폴더가 `~/.mem`에 없을 때 | hook은 빈 layer로 본다. 그때 target layer는 그 layer이고 load할 파일이 없을 뿐이다. hook은 폴더를 만들지 않는다 | layer 폴더가 없는 것은 첫 기억을 쓰기 전인 layer의 상태다 |
+
+읽지 못하는 줄은 `: `가 없는 줄, layer가 비었거나 `~/.mem` 밖을 가리키는 줄(`/`로 시작하거나 `..`가 든 것), 경로가 `/`나 `~`로 시작하지 않는 줄, 경로가 symlink를 지나는 줄이다. hook은 `~`를 풀고 끝의 `/`를 뗀 경로를 symlink까지 풀어 보고, 풀어 본 경로가 풀어 보기 전의 경로와 다르면 그 경로가 symlink를 지난다고 본다. hook은 이 기기에 없는 경로를 있는 데까지만 풀어 본다.
+
+맞는 layer가 서로 품지 않는 예시는 아래 두 줄이다. `~/workspace/work/shared-lib`에서 연 세션에는 `work`와 `oss/lib`이 맞고, 어느 쪽도 다른 쪽을 품지 않는다.
+
+```
+work: ~/workspace/work
+oss/lib: ~/workspace/work/shared-lib
+```
+
+넓은 경로를 이은 줄 아래의 폴더 하나를 다른 가지의 layer로 떼어 내는 길은 두지 않는다. 그런 폴더가 실제로 나오고 옮길 수 없으면, #모양과 규칙을 고르는 기준의 7번에 따라 구조를 다시 본다.
+
+실패를 알리는 줄의 모양은 아직 정하지 않았다. `layer-rules`의 파일 이름이나 줄의 layer 이름을 잘못 적으면, 세션은 실패 없이 전역만 받거나 빈 layer를 target layer로 삼는다. 세션 시작 줄이 target layer를 보이는지도 아직 정하지 않았다. symlink를 지나는 경로로 세션을 열면 사람이 본 경로와 hook이 읽은 작업 위치가 다르다. 세션 시작 줄이 hook이 읽은 작업 위치를 보이는지도 아직 정하지 않았다.
+
+layer 규칙에 한 번 적은 경로는 그 아래 저장소 전부에 걸리므로, 새 저장소는 그 경로 아래에 만들기만 하면 규칙을 고치지 않아도 제 layer에 든다.
 
 ### 누가 무엇을 하나
 
 | 누가 | 하는 일 | 하지 않는 일 |
 |---|---|---|
-| 사람 | 맥락 규칙을 정한다. `~/.mem`과 세션 시작 줄을 기존 markdown 뷰어와 터미널로 본다. save하거나 고치거나 지울 일을 에이전트에게 말로 시킨다 | 기억 파일을 손으로 쓰거나 옮기지 않는다 |
+| 사람 | layer 규칙을 정한다. `~/.mem`과 세션 시작 줄을 기존 markdown 뷰어와 터미널로 본다. save하거나 고치거나 지울 일을 에이전트에게 말로 시킨다 | 기억 파일을 손으로 쓰거나 옮기지 않는다 |
 | 에이전트 | 1단계에서는 사람이 시킬 때 `~/.mem` 아래 md를 쓰고 고치고 지운다. 2단계부터는 배운 것을 묻지 않고 save한다 | 지시 파일(CLAUDE.md·AGENTS.md)을 건드리지 않는다 |
 | hook | load하고, 세션 시작 줄을 띄운다. 2단계부터 log에 덧붙인다 | 항목을 바꾸지 않는다. 무엇을 save할지 판단하지 않는다. 사람을 부르지 않는다 |
 
@@ -101,7 +149,7 @@ Claude Code의 auto memory는 끈다. 켜 두면 같은 것이 두 곳에 쌓여
 
 ### 1단계가 load하는 방식
 
-`mem-hook`이 SessionStart hook으로 돈다. `mem-hook`은 맥락 규칙으로 target layer를 찾는다. 그다음 preamble과 전역부터 target layer까지 각 layer의 항목을 그 순서로 이어 `additionalContext`로 넣고, 세션 시작 줄을 `systemMessage`로 띄운다.
+`mem-hook`이 SessionStart hook으로 돈다. `mem-hook`은 layer 규칙으로 target layer를 찾는다. 그다음 preamble과 전역부터 target layer까지 각 layer의 항목을 그 순서로 이어 `additionalContext`로 넣고, 세션 시작 줄을 `systemMessage`로 띄운다.
 
 | 규칙 | 값 | 까닭 |
 |---|---|---|
@@ -134,9 +182,9 @@ log에는 명령 원문과 `p=`처럼 기기마다 다른 값이 들어간다. �
 
 **범위는 자리다.** 기억은 언제나 놓인 layer가 정한 곳에서만 load된다.
 
-모델이 범위를 고르면 빠뜨려도 알기 어렵기 때문에, load될 곳을 모델이 고르지 않고 layer와 맥락 규칙이 정한다. 그래서 다른 일의 기억이 딸려 오지 않고, 무엇이 load되는지가 `ls`로 보인다.
+모델이 범위를 고르면 빠뜨려도 알기 어렵기 때문에, load될 곳을 모델이 고르지 않고 layer와 layer 규칙이 정한다. 그래서 다른 일의 기억이 딸려 오지 않고, 무엇이 load되는지가 `ls`로 보인다.
 
-사람이 이 제약을 보고 만지는 곳은 layer 폴더, 맥락 규칙, 세션 시작 줄의 경로다.
+사람이 이 제약을 보고 만지는 곳은 layer 폴더, layer 규칙, 세션 시작 줄의 경로다.
 
 ### 이 제약과 함께 지키는 것
 
