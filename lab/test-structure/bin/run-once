@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+LAB = os.path.dirname(HERE)
+ROOT = os.environ["LAB_ROOT"]
+SEALED = os.environ["LAB_SEALED"]
+
+parser = argparse.ArgumentParser(description="테스트 하나를 도구 하나에 시켜 run 폴더에 결과를 남긴다.")
+parser.add_argument("test")
+parser.add_argument("--tool", default="auto-memory")
+parser.add_argument("--model", default="claude-sonnet-5-5")
+args = parser.parse_args()
+
+private = os.environ.get("LAB_TESTS_PRIVATE", "")
+tests_dir = f"{private}/{args.test}" if private and os.path.isdir(f"{private}/{args.test}") else f"{LAB}/tests/{args.test}"
+test = json.load(open(f"{tests_dir}/test.json", encoding="utf-8"))
+run_id = f"{args.test}-{args.tool}-{time.strftime('%H%M%S')}"
+run_dir = f"{ROOT}/runs/{run_id}"
+work = f"{run_dir}/work/repoA"
+os.makedirs(work)
+subprocess.run(["git", "init", "-q", work], check=True)
+
+iso = f"{HERE}/iso"
+home = f"{ROOT}/home"
+sanitized = re.sub(r"[^A-Za-z0-9]", "-", os.path.realpath(work))
+memory_dir = f"{home}/.claude/projects/{sanitized}/memory"
+os.makedirs(memory_dir)
+for name in os.listdir(f"{tests_dir}/fixture"):
+    if name != ".gitkeep":
+        shutil.copy(f"{tests_dir}/fixture/{name}", memory_dir)
+shutil.copytree(memory_dir, f"{run_dir}/memory-before")
+
+version = subprocess.run([iso, "claude", "--version"], capture_output=True, text=True).stdout.strip()
+env = dict(os.environ, LAB_CASE=run_id)
+stream = f"{run_dir}/stream.jsonl"
+started = time.time()
+with open(stream, "w") as out, open(f"{run_dir}/stderr.txt", "w") as err:
+    completed = subprocess.run(
+        [iso, "claude", "-p", test["prompt"], "--model", args.model, "--tools", test["tools"],
+         "--max-turns", "12", "--output-format", "stream-json", "--verbose",
+         "--debug-file", f"{run_dir}/debug.log"],
+        cwd=work, env=env, stdin=subprocess.DEVNULL, stdout=out, stderr=err, timeout=300)
+shutil.copytree(memory_dir, f"{run_dir}/memory-after")
+
+init, result = {}, {}
+for line in open(stream, encoding="utf-8"):
+    try:
+        event = json.loads(line)
+    except ValueError:
+        continue
+    if event.get("type") == "system" and event.get("subtype") == "init":
+        init = event
+    elif event.get("type") == "result":
+        result = event
+
+record = {
+    "run_id": run_id, "test": args.test, "tool": args.tool, "kind": test["kind"],
+    "claude_version": version, "model_requested": args.model, "model_seen": init.get("model"),
+    "session": init.get("session_id"), "exit": completed.returncode,
+    "turns": result.get("num_turns"), "seconds": round(time.time() - started),
+    "memory_dir": memory_dir, "memory_paths_from_init": init.get("memory_paths"),
+    "memory_dir_in_init": any(memory_dir in str(v) for v in (init.get("memory_paths") or {}).values()),
+    "prompt": test["prompt"],
+}
+json.dump(record, open(f"{run_dir}/result.json", "w"), ensure_ascii=False, indent=2)
+print(json.dumps({k: record[k] for k in ("run_id", "claude_version", "model_seen", "turns", "seconds", "memory_dir_in_init")}, ensure_ascii=False))
+sys.exit(subprocess.run([f"{HERE}/judge.py", run_dir]).returncode)

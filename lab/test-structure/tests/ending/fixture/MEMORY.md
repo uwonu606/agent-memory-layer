@@ -1,0 +1,4 @@
+- [배포 요일](deploy-day.md) — 배포 요일에 관한 기억
+- [리뷰 글투](review-style.md) — 코드 리뷰 댓글 글투
+- [시험 DB의 port](db-port.md) — 시험 DB가 도는 port
+- [개발 DB의 port](dev-db-port.md) — 개발 DB가 도는 port

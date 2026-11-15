@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+import glob
+import json
+import os
+import sys
+
+ROOT = os.environ["LAB_ROOT"]
+SEALED = os.environ["LAB_SEALED"]
+HERE = os.path.dirname(os.path.abspath(__file__))
+LAB = os.path.dirname(HERE)
+
+
+def latest_pending_runs():
+    latest = {}
+    for path in sorted(glob.glob(f"{ROOT}/runs/*/result.json")):
+        record = json.load(open(path, encoding="utf-8"))
+        if record["verdict"] == "human-pending":
+            latest[(record["test"], record["tool"])] = (path, record)
+    return list(latest.values())
+
+
+def entry(record):
+    test = json.load(open(f"{LAB}/tests/{record['test']}/test.json", encoding="utf-8"))
+    after = f"{os.path.dirname(record['memory_dir'])}/memory"
+    names = sorted(os.listdir(after), key=lambda n: (n != "MEMORY.md", n))
+    return {
+        "run_id": record["run_id"], "test": test["name"], "tool": record["tool"],
+        "question": test["question"], "where": record["memory_dir"],
+        "format": test["format"], "pattern": test["pattern"], "example": test["example"],
+        "files": [{"name": n, "content": open(f"{after}/{n}", encoding="utf-8").read()} for n in names],
+    }
+
+
+def html():
+    data = json.dumps([entry(record) for _, record in latest_pending_runs()], ensure_ascii=False).replace("</", "<\\/")
+    page = open(f"{HERE}/sheet-template.html", encoding="utf-8").read().replace("/*DATA*/", data)
+    out = f"{ROOT}/sheet.html"
+    open(out, "w", encoding="utf-8").write(page)
+    print(out)
+
+
+def grade(answers_path):
+    answers = json.load(open(answers_path, encoding="utf-8"))["runs"]
+    for path, record in latest_pending_runs():
+        given = answers.get(record["run_id"])
+        if given is None:
+            continue
+        sealed = json.load(open(f"{SEALED}/{record['run_id']}.json", encoding="utf-8"))
+        record["verdict"] = "pass" if given["answer"] == sealed["answer"] else "fail"
+        record["reasons"] = [] if record["verdict"] == "pass" else [f"답 '{given['answer']}' / 정답 '{sealed['answer']}' (쓴 시각 {sealed['written_at']})"]
+        record["human"] = {"difficulty": given["difficulty"], "seconds": given["seconds"]}
+        json.dump(record, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+        print(record["run_id"], record["verdict"], record["reasons"], record["human"])
+
+
+if sys.argv[1] == "html":
+    html()
+else:
+    grade(sys.argv[2])

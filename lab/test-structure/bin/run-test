@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import os
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+LAB = os.path.dirname(HERE)
+ROOT = os.environ["LAB_ROOT"]
+
+parser = argparse.ArgumentParser(description="테스트 하나를 test.json의 times번 돌리고, script 판정이면 모두 통과해야 통과로 센다.")
+parser.add_argument("test")
+parser.add_argument("--tool", default="auto-memory")
+parser.add_argument("--model", default="claude-sonnet-5-5")
+args = parser.parse_args()
+
+private = os.environ.get("LAB_TESTS_PRIVATE", "")
+tests_dir = f"{private}/{args.test}" if private and os.path.isdir(f"{private}/{args.test}") else f"{LAB}/tests/{args.test}"
+times = json.load(open(f"{tests_dir}/test.json", encoding="utf-8")).get("times", 1)
+
+verdicts = []
+for _ in range(times):
+    before = set(os.listdir(f"{ROOT}/runs"))
+    subprocess.run([f"{HERE}/run-once", args.test, "--tool", args.tool, "--model", args.model])
+    run_id = next(iter(set(os.listdir(f"{ROOT}/runs")) - before))
+    verdicts.append(json.load(open(f"{ROOT}/runs/{run_id}/result.json", encoding="utf-8"))["verdict"])
+    subprocess.run(["sleep", "1"])
+
+passed = verdicts.count("pass")
+summary = "human-pending" if "human-pending" in verdicts else ("pass" if passed == times else "fail")
+print(f"== {args.test} / {args.tool}: {summary} ({passed}/{times} pass) {verdicts}")

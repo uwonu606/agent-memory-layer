@@ -1,0 +1,6 @@
+{
+  "stale_file": "db-port.md",
+  "must_contain": "새 값",
+  "must_not_contain": "옛 값",
+  "untouched": ["다른 기억 파일 이름", "..."]
+}

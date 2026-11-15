@@ -1,0 +1,8 @@
+{
+  "name": "끝까지(어려움)",
+  "stuck": "셋째(낡은 기억 고치기)",
+  "kind": "script",
+  "prompt": "결제 샌드박스 주소가 바뀌었다. 이제 `pay-sandbox.internal:9443`이다. 낡은 기억을 고쳐 줘.",
+  "tools": "Read,Edit,Write,Glob,Grep",
+  "times": 3
+}

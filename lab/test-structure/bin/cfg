@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+import json
+import os
+import sys
+
+ROOT = os.environ["LAB_ROOT"]
+HOOKS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks")
+
+settings = {"hooks": {"PreToolUse": [{"hooks": [{"type": "command", "command": f"python3 {HOOKS}/pre-tool-guard.py"}]}]}}
+for extra in sys.argv[1:]:
+    settings.update(json.loads(extra))
+
+os.makedirs(f"{ROOT}/home/.claude", exist_ok=True)
+with open(f"{ROOT}/home/.claude/settings.json", "w", encoding="utf-8") as f:
+    json.dump(settings, f, ensure_ascii=False, indent=2)
+print(json.dumps({k: v for k, v in settings.items() if k != "hooks"}, ensure_ascii=False))

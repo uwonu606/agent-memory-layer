@@ -1,0 +1,13 @@
+{
+  "name": "언제",
+  "stuck": "첫째(무엇이 언제 쓰였는지 모른다)",
+  "kind": "human",
+  "prompt": "기억해 둬: 이 저장소의 린트는 `make lint`로 돌린다.",
+  "tools": "Read,Edit,Write,Glob,Grep",
+  "question": "이 세션에서 쓴 기억 파일 하나의 쓴 시각을 UTC 분 단위(예: 2026-11-15T09:41)로 적는다.",
+  "where": "기억 폴더",
+  "times": 1,
+  "format": "UTC 분까지 적는다. 예: 2026-11-15T09:41",
+  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$",
+  "example": "2026-11-15T09:41"
+}

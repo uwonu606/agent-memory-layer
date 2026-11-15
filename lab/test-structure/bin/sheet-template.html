@@ -1,0 +1,267 @@
+<title>기억 테스트 답안지</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+  /* 레이아웃: 위에 고정 막대(진행·복사), 아래로 칸 카드 한 장씩. 칸마다 원문 뷰어 → 답 → 어려움 → 확인 */
+  :root {
+    --paper: #f4f5f2;
+    --card: #ffffff;
+    --ink: #1c2220;
+    --ink-soft: #55605c;
+    --rule: #d6dbd7;
+    --pencil: #2756c5;
+    --pencil-bg: #e6edfb;
+    --ok: #1f7a4d;
+    --ok-bg: #dff1e7;
+    --bad: #b3261e;
+    --bad-bg: #f8e1df;
+    --view-bg: #fbfbf9;
+    --font-body: "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141917; --card: #1c2220; --ink: #e8ece9; --ink-soft: #9aa6a1; --rule: #34403b;
+      --pencil: #8fb0ff; --pencil-bg: #1e2b4d; --ok: #7fd4a4; --ok-bg: #1d3a2b;
+      --bad: #ff9a92; --bad-bg: #4a2523; --view-bg: #161c1a; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141917; --card: #1c2220; --ink: #e8ece9; --ink-soft: #9aa6a1; --rule: #34403b;
+    --pencil: #8fb0ff; --pencil-bg: #1e2b4d; --ok: #7fd4a4; --ok-bg: #1d3a2b;
+    --bad: #ff9a92; --bad-bg: #4a2523; --view-bg: #161c1a; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+    padding-block: 0 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+  .bar {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper);
+    border-bottom: 1px solid var(--rule); padding: 12px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  }
+  .bar h1 { font-size: 17px; margin: 0; font-weight: 700; flex: 1 1 auto; text-wrap: balance; }
+  .progress { font-variant-numeric: tabular-nums; color: var(--ink-soft); font-size: 14px; }
+  .progress b { color: var(--ink); }
+  button { font: inherit; cursor: pointer; }
+  .btn { border: 1px solid var(--pencil); background: var(--pencil); color: var(--paper); border-radius: 6px; padding: 6px 14px; font-weight: 500; }
+  .btn.ghost { background: transparent; color: var(--pencil); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  :focus-visible { outline: 2px solid var(--pencil); outline-offset: 2px; }
+  .rules { margin: 20px 0 8px; color: var(--ink-soft); font-size: 14px; }
+  .rules ul { margin: 6px 0 0; padding-left: 20px; }
+  .rules code, .where code { font-family: var(--font-mono); font-size: 13px; }
+  .card { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; margin: 16px 0; padding: 16px; display: grid; gap: 14px; }
+  .card.done { border-color: var(--ok); }
+  .head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .num { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .chip { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--pencil-bg); color: var(--pencil); letter-spacing: .02em; }
+  .chip.plain { background: transparent; border: 1px solid var(--rule); color: var(--ink-soft); }
+  .rid { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); margin-left: auto; overflow-wrap: anywhere; }
+  .q { margin: 0; font-size: 16px; font-weight: 500; text-wrap: pretty; }
+  .where { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; font-size: 13px; color: var(--ink-soft); }
+  .where code { overflow-wrap: anywhere; min-width: 0; flex: 1 1 260px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--rule); }
+  .tab { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--ink-soft); padding: 6px 12px; font-family: var(--font-mono); font-size: 13px; }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--pencil); }
+  .viewer { margin: 0; background: var(--view-bg); border: 1px solid var(--rule); border-top: 0; border-radius: 0 0 6px 6px; padding: 12px; overflow-x: auto; max-height: 340px; overflow-y: auto; }
+  .viewer pre { margin: 0; font-family: var(--font-mono); font-size: 13px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .answer { display: grid; gap: 6px; }
+  label.lab, legend { font-size: 13px; font-weight: 700; color: var(--ink-soft); letter-spacing: .02em; }
+  input[type="text"], textarea { font-family: var(--font-mono); font-size: 14px; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 10px; width: 100%; }
+  input[type="text"].ok { border-color: var(--ok); }
+  input[type="text"].bad { border-color: var(--bad); }
+  .hint { font-size: 12px; color: var(--ink-soft); min-height: 1.4em; }
+  .hint.bad { color: var(--bad); }
+  fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .choices { display: flex; flex-wrap: wrap; gap: 8px; }
+  .choices label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 14px; }
+  .choices label:has(input:checked) { border-color: var(--pencil); background: var(--pencil-bg); color: var(--pencil); }
+  .foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; border-top: 1px dashed var(--rule); padding-top: 12px; }
+  .check { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+  .check input { width: 18px; height: 18px; }
+  .timer { margin-left: auto; font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: 13px; color: var(--ink-soft); }
+  .out { margin-top: 24px; display: grid; gap: 8px; }
+  .out textarea { min-height: 130px; resize: vertical; font-size: 12px; }
+  .out p { margin: 0; color: var(--ink-soft); font-size: 13px; }
+  .state { font-size: 13px; }
+  .state.ok { color: var(--ok); }
+  @media (prefers-reduced-motion: no-preference) { .card { transition: border-color .15s; } }
+</style>
+
+<div class="wrap">
+  <div class="bar">
+    <h1>기억 테스트 답안지</h1>
+    <span class="progress" id="progress"></span>
+    <button class="btn" id="copy-top" type="button">답 복사</button>
+  </div>
+
+  <div class="rules">
+    <strong>읽는 법</strong>
+    <ul>
+      <li>아래 원문은 기억 폴더의 파일을 연 모습이다. 눈으로 읽기만 하고 <code>grep</code>·<code>jq</code>·<code>/context</code>는 쓰지 않는다.</li>
+      <li>칸마다 답을 적고, 읽기 어려웠던 정도를 고르고, 확인을 체크한다. 읽는 시간은 곁에만 적고 판정에 들지 않는다.</li>
+      <li>다 채우면 <b>답 복사</b>로 JSON을 복사해 대화에 붙여 넣는다. 정답은 이 페이지에 없다.</li>
+    </ul>
+  </div>
+
+  <div id="cards"></div>
+
+  <section class="out">
+    <label class="lab" for="out-json">채운 답 (JSON)</label>
+    <textarea id="out-json" readonly></textarea>
+    <p id="copy-state" class="state" aria-live="polite"></p>
+    <div><button class="btn" id="copy-bottom" type="button">답 복사</button></div>
+  </section>
+</div>
+
+<script id="data" type="application/json">/*DATA*/</script>
+<script>
+(function () {
+  var runs = JSON.parse(document.getElementById("data").textContent);
+  var KEY = "amm-sheet-v1:" + runs.map(function (r) { return r.run_id; }).join("|");
+  var DIFFICULTY = ["쉬움", "걸림", "못 찾음"];
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { state = {}; }
+  runs.forEach(function (r) { state[r.run_id] = state[r.run_id] || { answer: "", difficulty: "", done: false, seconds: 0 }; });
+  var started = {};
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function el(tag, attrs, kids) {
+    var node = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === "text") node.textContent = attrs[k]; else if (k === "class") node.className = attrs[k]; else node.setAttribute(k, attrs[k]);
+    });
+    (kids || []).forEach(function (kid) { node.appendChild(kid); });
+    return node;
+  }
+  function fmt(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+  function copyText(text, done) {
+    var ok = function () { done(true); };
+    var fallback = function () {
+      var box = document.getElementById("out-json"); box.focus(); box.select();
+      done(false);
+    };
+    try { navigator.clipboard.writeText(text).then(ok, fallback); } catch (e) { fallback(); }
+  }
+
+  function render() {
+    var host = document.getElementById("cards");
+    runs.forEach(function (run, index) {
+      var s = state[run.run_id];
+      var card = el("article", { class: "card", id: "card-" + index });
+      card.appendChild(el("div", { class: "head" }, [
+        el("span", { class: "num", text: (index + 1) + " / " + runs.length }),
+        el("span", { class: "chip", text: run.test }),
+        el("span", { class: "chip plain", text: run.tool }),
+        el("span", { class: "rid", text: run.run_id })
+      ]));
+      card.appendChild(el("p", { class: "q", text: run.question }));
+
+      var where = el("div", { class: "where" }, [el("span", { text: "볼 자리" }), el("code", { text: run.where })]);
+      var pathCopy = el("button", { class: "btn ghost", type: "button", text: "경로 복사" });
+      pathCopy.addEventListener("click", function () { copyText(run.where, function () {}); });
+      where.appendChild(pathCopy);
+      card.appendChild(where);
+
+      var tabs = el("div", { class: "tabs", role: "tablist" });
+      var view = el("div", { class: "viewer" }); var pre = el("pre"); view.appendChild(pre);
+      function show(i) {
+        Array.prototype.forEach.call(tabs.children, function (t, j) { t.setAttribute("aria-selected", j === i ? "true" : "false"); });
+        pre.textContent = run.files[i].content;
+      }
+      run.files.forEach(function (file, i) {
+        var tab = el("button", { class: "tab", type: "button", role: "tab", text: file.name });
+        tab.addEventListener("click", function () { show(i); });
+        tabs.appendChild(tab);
+      });
+      card.appendChild(el("div", {}, [tabs, view]));
+      show(0);
+
+      var answerId = "answer-" + index;
+      var input = el("input", { type: "text", id: answerId, autocomplete: "off", spellcheck: "false", placeholder: run.example });
+      input.value = s.answer;
+      var hint = el("div", { class: "hint", id: "hint-" + index });
+      card.appendChild(el("div", { class: "answer" }, [el("label", { class: "lab", for: answerId, text: "답" }), input, hint]));
+
+      var choices = el("div", { class: "choices" });
+      DIFFICULTY.forEach(function (label) {
+        var radio = el("input", { type: "radio", name: "difficulty-" + index, value: label });
+        radio.checked = s.difficulty === label;
+        radio.addEventListener("change", function () { s.difficulty = label; save(); update(); });
+        choices.appendChild(el("label", {}, [radio, el("span", { text: label })]));
+      });
+      card.appendChild(el("fieldset", {}, [el("legend", { text: "읽기가 어땠나" }), choices]));
+
+      var check = el("input", { type: "checkbox", id: "done-" + index });
+      check.checked = s.done;
+      var timer = el("span", { class: "timer", id: "timer-" + index, text: fmt(s.seconds) });
+      card.appendChild(el("div", { class: "foot" }, [
+        el("label", { class: "check", for: "done-" + index }, [check, el("span", { text: "다 읽고 적었다" })]), timer
+      ]));
+
+      function begin() { if (!started[run.run_id] && !s.done) started[run.run_id] = Date.now(); }
+      card.addEventListener("focusin", begin); card.addEventListener("pointerdown", begin);
+      input.addEventListener("input", function () { s.answer = input.value.trim(); if (!valid(run, s)) { check.checked = false; s.done = false; } save(); update(); });
+      check.addEventListener("change", function () {
+        if (check.checked) {
+          if (started[run.run_id]) { s.seconds += Math.round((Date.now() - started[run.run_id]) / 1000); started[run.run_id] = 0; }
+          s.done = true;
+        } else { s.done = false; }
+        save(); update();
+      });
+      host.appendChild(card);
+    });
+  }
+
+  function valid(run, s) { return new RegExp(run.pattern).test(s.answer); }
+
+  function update() {
+    var filled = 0;
+    runs.forEach(function (run, index) {
+      var s = state[run.run_id];
+      var input = document.getElementById("answer-" + index), hint = document.getElementById("hint-" + index);
+      var check = document.getElementById("done-" + index), card = document.getElementById("card-" + index);
+      var ok = valid(run, s);
+      input.className = s.answer === "" ? "" : (ok ? "ok" : "bad");
+      hint.className = "hint" + (s.answer !== "" && !ok ? " bad" : "");
+      hint.textContent = s.answer === "" ? run.format : (ok ? "형식이 맞다" : run.format);
+      check.disabled = !(ok && s.difficulty);
+      card.className = "card" + (s.done ? " done" : "");
+      document.getElementById("timer-" + index).textContent = fmt(s.seconds);
+      if (s.done) filled++;
+    });
+    document.getElementById("progress").innerHTML = "<b>" + filled + "</b> / " + runs.length + " 칸 확인";
+    var out = { runs: {} };
+    runs.forEach(function (run) {
+      var s = state[run.run_id];
+      out.runs[run.run_id] = { answer: s.answer, difficulty: s.difficulty, seconds: s.seconds, done: s.done };
+    });
+    document.getElementById("out-json").value = JSON.stringify(out, null, 2);
+  }
+
+  ["copy-top", "copy-bottom"].forEach(function (id) {
+    document.getElementById(id).addEventListener("click", function () {
+      var msg = document.getElementById("copy-state");
+      copyText(document.getElementById("out-json").value, function (copied) {
+        msg.className = "state" + (copied ? " ok" : "");
+        msg.textContent = copied ? "복사했다. 대화에 붙여 넣는다." : "복사하지 못했다. 아래 글을 선택해 복사한다.";
+      });
+    });
+  });
+
+  render(); update();
+  setInterval(function () {
+    runs.forEach(function (run, index) {
+      if (started[run.run_id]) {
+        var live = state[run.run_id].seconds + Math.round((Date.now() - started[run.run_id]) / 1000);
+        document.getElementById("timer-" + index).textContent = fmt(live);
+      }
+    });
+  }, 1000);
+})();
+</script>

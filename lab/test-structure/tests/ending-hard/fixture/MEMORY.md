@@ -1,0 +1,24 @@
+- [결제 스테이징 주소](payment-staging-endpoint.md) — 결제 서비스를 시험하는 스테이징 환경의 주소
+- [릴리스 체크리스트](release-checklist.md) — 배포 전에 확인하는 목록
+- [결제 운영 주소](payment-prod-endpoint.md) — 결제 서비스 운영 환경의 주소
+- [알림 스테이징 주소](notify-staging-endpoint.md) — 알림 서비스 스테이징 환경의 주소
+- [검색 스테이징 주소](search-staging-endpoint.md) — 검색 서비스 스테이징 환경의 주소
+- [배포 요일](deploy-day.md) — 배포하는 요일
+- [리뷰 글투](review-style.md) — 코드 리뷰 댓글 글투
+- [커밋 메시지](commit-style.md) — 커밋 메시지 규칙
+- [테스트 명령](test-command.md) — 테스트를 돌리는 명령
+- [린트 명령](lint-command.md) — 린트를 돌리는 명령
+- [시험 DB port](db-port.md) — 시험 DB가 도는 port
+- [Python 버전](python-version.md) — 쓰는 Python 버전
+- [브랜치 이름](branch-naming.md) — 브랜치 이름 규칙
+- [PR 크기](pr-size.md) — PR 크기 기준
+- [온콜 순서](oncall-rotation.md) — 온콜 교대 순서
+- [로그 형식](log-format.md) — 로그 한 줄의 형식
+- [기능 플래그](feature-flags.md) — 기능 플래그를 두는 곳
+- [재시도 규칙](retry-policy.md) — 외부 호출 재시도 규칙
+- [비밀 값](secrets-handling.md) — 비밀 값을 다루는 규칙
+- [문서 위치](docs-location.md) — 설계 문서를 두는 곳
+- [시간대](timezone.md) — 서버가 쓰는 시간대
+- [CI 실행 시간](ci-runtime.md) — CI가 걸리는 시간
+- [코드 담당](code-owners.md) — 모듈별 담당
+- [주간 회의](meeting-notes.md) — 주간 회의 시간
