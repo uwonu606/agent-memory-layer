@@ -11,6 +11,10 @@ _Avoid_: 층
 **전역**:
 가장 바깥 layer다. 모든 세션이 받는다.
 
+**layer tree**:
+전역과 그 안에 놓인 layer 전부다.
+_Avoid_: 저장소
+
 **target layer**:
 작업 위치에 맞는 layer 가운데 가장 안쪽 layer다.
 
