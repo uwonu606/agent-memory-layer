@@ -1,0 +1,271 @@
+
+================================================================
+후보 1: 뿌리 하나 안에서 layer tree와 도구 파일이 나란히 놓인다
+================================================================
+[1단계 load] 항목 넷과 맥락 규칙 파일을 둔다
+  파일:
+    ~/.config/mem-hook/contexts
+    ~/.mem/layers/a.md
+    ~/.mem/layers/work/api/c.md
+    ~/.mem/layers/work/b.md
+    ~/.mem/layers/work/web/d.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c.md
+[2단계 save] 에이전트가 work/api에 e.md를 save하고 hook이 log에 한 줄 덧붙인다
+  파일:
+    ~/.config/mem-hook/contexts
+    ~/.mem/layers/a.md
+    ~/.mem/layers/work/api/c.md
+    ~/.mem/layers/work/api/e.md
+    ~/.mem/layers/work/b.md
+    ~/.mem/layers/work/web/d.md
+    ~/.mem/log.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c.md work/api/e.md
+[3단계 decision] c.md를 c2.md가 대체하고, c.md는 load하지 않는 자리로 옮긴다
+  파일:
+    ~/.config/mem-hook/contexts
+    ~/.mem/layers/a.md
+    ~/.mem/layers/work/api/c2.md
+    ~/.mem/layers/work/api/e.md
+    ~/.mem/layers/work/b.md
+    ~/.mem/layers/work/web/d.md
+    ~/.mem/log.md
+    ~/.mem/retired/work/api/c.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c2.md work/api/e.md
+[4단계 split] work/api 안에 billing layer를 두고 e.md를 옮긴다
+  파일:
+    ~/.config/mem-hook/contexts
+    ~/.mem/layers/a.md
+    ~/.mem/layers/work/api/billing/e.md
+    ~/.mem/layers/work/api/c2.md
+    ~/.mem/layers/work/b.md
+    ~/.mem/layers/work/web/d.md
+    ~/.mem/log.md
+    ~/.mem/retired/work/api/c.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c2.md
+    target layer가 work/api/billing 인 세션: a.md work/b.md work/api/c2.md work/api/billing/e.md
+[이름] 도구가 정한 이름이 layer 이름 자리에 끼어 있는가
+  전역 바로 아래 폴더: work
+  그 폴더마다 target layer로 삼은 세션:
+    target layer가 work 인 세션: a.md work/b.md
+[옮기기] 옮길 폴더 하나를 다른 기기에 복사한다
+  다른 기기에 놓인 것:
+    ~/.mem/layers/a.md
+    ~/.mem/layers/work/api/billing/e.md
+    ~/.mem/layers/work/api/c2.md
+    ~/.mem/layers/work/b.md
+    ~/.mem/layers/work/web/d.md
+    ~/.mem/log.md
+    ~/.mem/retired/work/api/c.md
+  이 기기에만 남은 것:
+    ~/.config/mem-hook/contexts
+[항목이 아닌 파일] 옮길 폴더의 뿌리에 .gitignore, work/api에 diagram.png가 놓인다
+  파일:
+    ~/.config/mem-hook/contexts
+    ~/.mem/.gitignore
+    ~/.mem/layers/a.md
+    ~/.mem/layers/work/api/billing/e.md
+    ~/.mem/layers/work/api/c2.md
+    ~/.mem/layers/work/api/diagram.png
+    ~/.mem/layers/work/b.md
+    ~/.mem/layers/work/web/d.md
+    ~/.mem/log.md
+    ~/.mem/retired/work/api/c.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c2.md work/api/diagram.png
+[옮기는 도구] 옮길 폴더를 git 저장소로 만든다
+  전역 바로 아래 폴더: work
+    target layer가 전역 인 세션: a.md
+
+================================================================
+후보 2: 뿌리가 전역이고 도구 파일은 전부 뿌리 밖에 놓인다
+================================================================
+[1단계 load] 항목 넷과 맥락 규칙 파일을 둔다
+  파일:
+    ~/.mem-hook/contexts
+    ~/.mem/a.md
+    ~/.mem/work/api/c.md
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c.md
+[2단계 save] 에이전트가 work/api에 e.md를 save하고 hook이 log에 한 줄 덧붙인다
+  파일:
+    ~/.mem-hook/contexts
+    ~/.mem-hook/log.md
+    ~/.mem/a.md
+    ~/.mem/work/api/c.md
+    ~/.mem/work/api/e.md
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c.md work/api/e.md
+[3단계 decision] c.md를 c2.md가 대체하고, c.md는 load하지 않는 자리로 옮긴다
+  파일:
+    ~/.mem-hook/contexts
+    ~/.mem-hook/log.md
+    ~/.mem-hook/retired/work/api/c.md
+    ~/.mem/a.md
+    ~/.mem/work/api/c2.md
+    ~/.mem/work/api/e.md
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c2.md work/api/e.md
+[4단계 split] work/api 안에 billing layer를 두고 e.md를 옮긴다
+  파일:
+    ~/.mem-hook/contexts
+    ~/.mem-hook/log.md
+    ~/.mem-hook/retired/work/api/c.md
+    ~/.mem/a.md
+    ~/.mem/work/api/billing/e.md
+    ~/.mem/work/api/c2.md
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c2.md
+    target layer가 work/api/billing 인 세션: a.md work/b.md work/api/c2.md work/api/billing/e.md
+[이름] 도구가 정한 이름이 layer 이름 자리에 끼어 있는가
+  전역 바로 아래 폴더: work
+  그 폴더마다 target layer로 삼은 세션:
+    target layer가 work 인 세션: a.md work/b.md
+[옮기기] 옮길 폴더 하나를 다른 기기에 복사한다
+  다른 기기에 놓인 것:
+    ~/.mem/a.md
+    ~/.mem/work/api/billing/e.md
+    ~/.mem/work/api/c2.md
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  이 기기에만 남은 것:
+    ~/.mem-hook/contexts
+    ~/.mem-hook/log.md
+    ~/.mem-hook/retired/work/api/c.md
+[항목이 아닌 파일] 옮길 폴더의 뿌리에 .gitignore, work/api에 diagram.png가 놓인다
+  파일:
+    ~/.mem-hook/contexts
+    ~/.mem-hook/log.md
+    ~/.mem-hook/retired/work/api/c.md
+    ~/.mem/.gitignore
+    ~/.mem/a.md
+    ~/.mem/work/api/billing/e.md
+    ~/.mem/work/api/c2.md
+    ~/.mem/work/api/diagram.png
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: .gitignore a.md
+    target layer가 work/api 인 세션: .gitignore a.md work/b.md work/api/c2.md work/api/diagram.png
+[옮기는 도구] 옮길 폴더를 git 저장소로 만든다
+  전역 바로 아래 폴더: .git work
+    target layer가 전역 인 세션: .gitignore a.md
+
+================================================================
+후보 3: 뿌리가 전역이고 도구 파일은 뿌리 안 예약한 이름 아래에 놓인다
+================================================================
+[1단계 load] 항목 넷과 맥락 규칙 파일을 둔다
+  파일:
+    ~/.config/mem-hook/contexts
+    ~/.mem/a.md
+    ~/.mem/work/api/c.md
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c.md
+[2단계 save] 에이전트가 work/api에 e.md를 save하고 hook이 log에 한 줄 덧붙인다
+  파일:
+    ~/.config/mem-hook/contexts
+    ~/.mem/.hook/log.md
+    ~/.mem/a.md
+    ~/.mem/work/api/c.md
+    ~/.mem/work/api/e.md
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c.md work/api/e.md
+[3단계 decision] c.md를 c2.md가 대체하고, c.md는 load하지 않는 자리로 옮긴다
+  파일:
+    ~/.config/mem-hook/contexts
+    ~/.mem/.hook/log.md
+    ~/.mem/.hook/retired/work/api/c.md
+    ~/.mem/a.md
+    ~/.mem/work/api/c2.md
+    ~/.mem/work/api/e.md
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c2.md work/api/e.md
+[4단계 split] work/api 안에 billing layer를 두고 e.md를 옮긴다
+  파일:
+    ~/.config/mem-hook/contexts
+    ~/.mem/.hook/log.md
+    ~/.mem/.hook/retired/work/api/c.md
+    ~/.mem/a.md
+    ~/.mem/work/api/billing/e.md
+    ~/.mem/work/api/c2.md
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: a.md
+    target layer가 work 인 세션: a.md work/b.md
+    target layer가 work/api 인 세션: a.md work/b.md work/api/c2.md
+    target layer가 work/api/billing 인 세션: a.md work/b.md work/api/c2.md work/api/billing/e.md
+[이름] 도구가 정한 이름이 layer 이름 자리에 끼어 있는가
+  전역 바로 아래 폴더: .hook work
+  그 폴더마다 target layer로 삼은 세션:
+    target layer가 .hook 인 세션: a.md .hook/log.md
+    target layer가 work 인 세션: a.md work/b.md
+[옮기기] 옮길 폴더 하나를 다른 기기에 복사한다
+  다른 기기에 놓인 것:
+    ~/.mem/.hook/log.md
+    ~/.mem/.hook/retired/work/api/c.md
+    ~/.mem/a.md
+    ~/.mem/work/api/billing/e.md
+    ~/.mem/work/api/c2.md
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  이 기기에만 남은 것:
+    ~/.config/mem-hook/contexts
+[항목이 아닌 파일] 옮길 폴더의 뿌리에 .gitignore, work/api에 diagram.png가 놓인다
+  파일:
+    ~/.config/mem-hook/contexts
+    ~/.mem/.gitignore
+    ~/.mem/.hook/log.md
+    ~/.mem/.hook/retired/work/api/c.md
+    ~/.mem/a.md
+    ~/.mem/work/api/billing/e.md
+    ~/.mem/work/api/c2.md
+    ~/.mem/work/api/diagram.png
+    ~/.mem/work/b.md
+    ~/.mem/work/web/d.md
+  세션이 받는 것(전역부터 target layer까지 layer마다 ls):
+    target layer가 전역 인 세션: .gitignore a.md
+    target layer가 work/api 인 세션: .gitignore a.md work/b.md work/api/c2.md work/api/diagram.png
+[옮기는 도구] 옮길 폴더를 git 저장소로 만든다
+  전역 바로 아래 폴더: .git .hook work
+    target layer가 전역 인 세션: .gitignore a.md
