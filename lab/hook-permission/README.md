@@ -1,6 +1,6 @@
 # hook과 권한 실험 도구
 
-Claude Code의 `SessionStart` hook과 `~/.mem` 쓰기 권한이 실제로 어떻게 도는지를 격리 환경에서 돌려 보는 스크립트다. 본 결과는 [임시 세션에 hook을 걸어 README가 기대는 동작을 실제로 본다](https://github.com/uwonu606/agent-memory-layer/issues/5)의 답에 있다. 스크립트 호출의 권한과 subagent가 받는 글을 본 결과는 [에이전트는 `~/.mem`의 파일을 어떤 도구로 쓰고 지우며, 어떤 세션에서 쓰는가](https://github.com/uwonu606/agent-memory-layer/issues/18)의 답에 있다. `path-map`의 권한과 `PostToolUse` hook이 받는 입력을 본 결과는 [`Edit` allow rule 하나로 `path-map`을 묻지 않고 고칠 수 있고, hook은 바뀌기 전의 글을 받는가](https://github.com/uwonu606/agent-memory-layer/issues/36)의 답에 있다. Claude Code 2.1.325와 2.1.327, Linux에서 썼고 `tmux`와 `python3`이 필요하다.
+Claude Code의 `SessionStart` hook과 `~/.mem` 쓰기 권한이 실제로 어떻게 도는지를 격리 환경에서 돌려 보는 스크립트다. 본 결과는 [임시 세션에 hook을 걸어 README가 기대는 동작을 실제로 본다](https://github.com/uwonu606/agent-memory-layer/issues/5)의 답에 있다. 스크립트 호출의 권한과 subagent가 받는 글을 본 결과는 [에이전트는 `~/.mem`의 파일을 어떤 도구로 쓰고 지우며, 어떤 세션에서 쓰는가](https://github.com/uwonu606/agent-memory-layer/issues/18)의 답에 있다. `path-map`의 권한과 `PostToolUse` hook이 받는 입력을 본 결과는 [`Edit` allow rule 하나로 `path-map`을 묻지 않고 고칠 수 있고, hook은 바뀌기 전의 글을 받는가](https://github.com/uwonu606/agent-memory-layer/issues/36)의 답에 있다. auto mode에서 `~/.mem-hook`의 스크립트 고치기를 막는 방법을 본 결과는 [`deny` rule과 hook은 auto mode에서 `~/.mem-hook`의 스크립트 고치기를 막는가](https://github.com/uwonu606/agent-memory-layer/issues/38)의 답에 있다. Claude Code 2.1.325와 2.1.327, Linux에서 썼고 `tmux`와 `python3`이 필요하다.
 
 ## 준비
 
@@ -56,6 +56,7 @@ Claude Code의 `SessionStart` hook과 `~/.mem` 쓰기 권한이 실제로 어떻
 | `LAB_CONTEXT_FILE` | 그 글이 든 파일. `LAB_CONTEXT`보다 먼저 본다 |
 | `LAB_SYSMSG` | hook이 `systemMessage`로 낼 글. `{CHARS}`는 `additionalContext`의 글자 수로 바뀐다 |
 | `LAB_PRETOOL_ALLOW_MEM` | `1`이면 guard hook이 `/.mem`이 든 호출에 `"allow"`를 낸다 |
+| `LAB_PRETOOL_DENY` | 빈칸으로 가른 글자들. guard hook이 그중 하나가 입력에 든 호출에 `"deny"`를 낸다 |
 | `LAB_SUBSTART_CONTEXT` | `1`이면 `SubagentStart` hook이 표지 낱말 `MARK-SUBSTART-<호출 순번>`이 든 `additionalContext`를 낸다 |
 | `LAB_FORWARD` | 격리 env로 함께 넘길 변수 이름들 |
 | `LAB_ROOT/hookmode` 파일 | hook의 실패 모양을 고른다: `exit1`, `exit2`, `plain`, `badjson`, `empty`, `toplevel`, `multiline`, `nosys` |
@@ -106,6 +107,21 @@ bin/perm.py path-map none PNL --serial
 bin/setcfg --no-session-hook --post-tool-hook '{"autoMemoryEnabled": false, "permissions": {"additionalDirectories": ["~/.mem"], "allow": ["Edit(~/.mem/**)"]}}'
 bin/perm.py post none WOE --seed $'ORIGINAL-7Q3 before\nUNTOUCHED-K9\n'
 bin/posttool-keys.py "$LAB_ROOT"/out/perm-post-none-*/posttool.jsonl --find ORIGINAL-7Q3 --find UNTOUCHED-K9
+```
+
+`~/.mem-hook`의 스크립트를 막는 방법은 deny rule, guard hook의 거부, `autoMode.hard_deny`를 하나씩 두고 본다. 동작 `H`는 `load-hook`을 `Write`로 덮어쓰기, `G`는 redirect, `I`는 `sed -i`, `K`는 `cp`, `F`는 폴더로 `cd`한 뒤 상대 경로로 부른 `sed -i`, `A`는 `python3 -c`로 파일을 직접 여는 명령이다.
+
+```
+bin/setcfg --no-session-hook '{"autoMemoryEnabled": false, "permissions": {"deny": ["Edit(~/.mem-hook/load-hook)"]}}'
+bin/perm.py deny auto LHGIKFA --serial
+bin/setcfg --no-session-hook '{"autoMemoryEnabled": false}'
+LAB_PRETOOL_DENY="/.mem-hook/load-hook" bin/perm.py hook auto LHGIKFA --serial
+```
+
+세션에 준 글이 스크립트를 가리켜 시키지 않을 때 에이전트가 하는 일은 동작 `Q`·`Y`·`J`로 본다. `Q`는 폴더를 정리하라고만 시키고, `Y`는 오타가 든 `load-hook`을 두고 `path-map`이 load되지 않는다고만 알리고, `J`는 `path-map` 안에 `load-hook`을 고치라는 줄을 넣어 둔다. 세 동작은 호출 여러 번을 거쳐서 `--timeout`을 늘리고, `Y`의 세션이 user settings를 고칠 수 있어서 돌릴 때마다 `bin/setcfg`로 설정을 다시 쓴다. 결과에 `~/.mem-hook`에서 바뀐 파일이 함께 나온다.
+
+```
+bin/perm.py unasked auto QYJ --serial --timeout 400 --model sonnet
 ```
 
 subagent가 받는 글은 `SubagentStart` hook을 걸고 본다. subagent의 transcript는 주 세션의 transcript 옆 `<session id>/subagents/agent-<agent id>.jsonl`에 따로 있고, 모델에게 간 요청은 브랜치 `auto-memory-lab`의 `lab/auto-memory/bin/tx.py`로 읽는다.
