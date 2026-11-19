@@ -51,7 +51,7 @@ def plan(action):
     if action == "O":
         return path, True, f"{home_note} Write 도구로 이미 있는 {path} 파일을 덮어써 줘. 새 내용은 one 한 낱말이다. 먼저 Read가 필요하면 Read해도 된다. {ONE_TRY}"
     if action == "P":
-        return PATH_MAP, PATH_MAP_SEED, f"{home_note} Edit 도구로 {PATH_MAP} 파일의 끝에 `/work/beta beta` 한 줄을 더해 줘. 먼저 Read가 필요하면 Read해도 된다. {ONE_TRY}"
+        return PATH_MAP, PATH_MAP_SEED, f"{home_note} 먼저 Read 도구로 {PATH_MAP} 파일을 읽어 줘. 그다음 Edit 도구로 old_string에는 `/work/alpha alpha` 줄을, new_string에는 그 줄과 `/work/beta beta` 줄을 넣어서 파일 끝에 한 줄을 더해 줘. {ONE_TRY}"
     if action == "N":
         return PATH_MAP, False, f"{home_note} Write 도구로 {PATH_MAP} 파일을 만들어 줘. 내용은 `/work/beta beta` 한 줄이다. {ONE_TRY}"
     if action == "L":

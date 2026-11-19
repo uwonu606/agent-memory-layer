@@ -1,6 +1,6 @@
 # hook과 권한 실험 도구
 
-Claude Code의 `SessionStart` hook과 `~/.mem` 쓰기 권한이 실제로 어떻게 도는지를 격리 환경에서 돌려 보는 스크립트다. 본 결과는 [임시 세션에 hook을 걸어 README가 기대는 동작을 실제로 본다](https://github.com/uwonu606/agent-memory-layer/issues/5)의 답에 있다. 스크립트 호출의 권한과 subagent가 받는 글을 본 결과는 [에이전트는 `~/.mem`의 파일을 어떤 도구로 쓰고 지우며, 어떤 세션에서 쓰는가](https://github.com/uwonu606/agent-memory-layer/issues/18)의 답에 있다. Claude Code 2.1.325, Linux에서 썼고 `tmux`와 `python3`이 필요하다.
+Claude Code의 `SessionStart` hook과 `~/.mem` 쓰기 권한이 실제로 어떻게 도는지를 격리 환경에서 돌려 보는 스크립트다. 본 결과는 [임시 세션에 hook을 걸어 README가 기대는 동작을 실제로 본다](https://github.com/uwonu606/agent-memory-layer/issues/5)의 답에 있다. 스크립트 호출의 권한과 subagent가 받는 글을 본 결과는 [에이전트는 `~/.mem`의 파일을 어떤 도구로 쓰고 지우며, 어떤 세션에서 쓰는가](https://github.com/uwonu606/agent-memory-layer/issues/18)의 답에 있다. `path-map`의 권한과 `PostToolUse` hook이 받는 입력을 본 결과는 [`Edit` allow rule 하나로 `path-map`을 묻지 않고 고칠 수 있고, hook은 바뀌기 전의 글을 받는가](https://github.com/uwonu606/agent-memory-layer/issues/36)의 답에 있다. Claude Code 2.1.325와 2.1.327, Linux에서 썼고 `tmux`와 `python3`이 필요하다.
 
 ## 준비
 
