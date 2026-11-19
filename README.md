@@ -63,7 +63,7 @@ Claude Code 밖에서도 쓴다는 요구를 둔다. Claude Code부터 만들고
 
 테스트는 빈 폴더를 HOME으로 둔 격리 환경에서 돌린다. 사용자는 이 격리 HOME에서 login을 한 번 한다. 시험마다 새 저장소 폴더를 만드는데, Claude Code의 기억 폴더가 저장소 경로에서 정해져서 기억 폴더가 빈 채로 시작한다. 실험 세션이 실제 home을 건드리지 못하게 PreToolUse hook(도구를 부르기 전에 도는 hook)이 막는다.
 
-테스트를 돌리는 쪽은 이 도구에 시키는 테스트를 돌리기 전에 격리 HOME에 `install`을 돌리고, `claude -p` 세션 하나로 설치가 통하는지를 본다. 보는 것은 여섯이다: hook이 넣은 글이 모델에게 가는 첫 요청에 들었는지, `~/.mem`에 쓰기가 거부되지 않는지, `mem-file` 호출이 거부되지 않는지, 로그에 줄이 남는지, auto memory의 지시가 모델에게 가는 요청에 없는지, `path-map` 고치기가 거부되지 않는지.
+테스트를 돌리는 쪽은 이 도구에 시키는 테스트를 돌리기 전에 격리 HOME에 `install`을 돌리고, `claude -p` 세션 하나로 설치가 통하는지를 본다. 보는 것은 일곱이다: hook이 넣은 글이 모델에게 가는 첫 요청에 들었는지, `~/.mem`에 쓰기가 거부되지 않는지, `mem-file` 호출이 거부되지 않는지, 로그에 줄이 남는지, auto memory의 지시가 모델에게 가는 요청에 없는지, `path-map` 고치기가 거부되지 않는지, `~/.mem-hook`의 스크립트 고치기가 deny rule로 거부되는지.
 
 설치 확인은 항목마다 통과나 실패를 한 줄씩 찍고, 실패한 항목은 기대한 것과 실제로 본 것을 함께 찍어 무엇을 고칠지 알게 한다. 항목의 세부는 아직 정하지 않았다.
 
@@ -215,7 +215,8 @@ Claude Code의 hooks 문서는 `CLAUDE_PROJECT_DIR`을 "the project root where t
 - **Claude Code의 권한 설정**: user settings의 `permissions.additionalDirectories`에 `~/.mem`을 더하고, `permissions.allow`에 `Edit(~/.mem/**)`와 `mem-file`을 부르는 `Bash` allow rule을 둔다. 이 셋이 있으면 에이전트가 스스로 하는 `~/.mem` 안의 일은 permission mode를 가리지 않고 사람에게 묻지 않고 실행된다(Claude Code 2.1.325의 `claude -p`에서 Manual, auto, `dontAsk`로 확인).
 - **권한 설정을 쓰는 쪽**: Claude Code의 allow rule과 에이전트가 부르는 명령은 철자가 글자로 맞아야 한다. 권한 설정은 `install`이 쓰고, 사람은 설정을 기억해서 손으로 적지 않는다. `install`이 쓰는 줄과 rule의 철자는 #설치에 적는다.
 - **`path-map`의 권한**: `permissions.allow`에 `Edit(~/.mem-hook/path-map)`을 두어, 에이전트가 `path-map`을 고칠 때 Claude Code가 사람에게 묻지 않게 한다. 사람의 개입을 최소로 하고, 고친 것은 로그에 남겨 되돌릴 수 있게 한다. 이 rule 한 줄이 있으면 `path-map`의 `Read`와 `Edit`, 없는 `path-map`을 만드는 `Write`가 사람에게 묻지 않고 실행되고, `additionalDirectories`에는 `~/.mem-hook`을 넣지 않는다(Claude Code 2.1.327의 `claude -p`에서 Manual, auto, `dontAsk`로 확인). Claude Code의 `PostToolUse` hook은 `Edit` 때와 `Write`로 있는 파일을 덮어쓸 때 바뀌기 전의 파일 전체를 입력으로 받는다(같은 버전에서 확인). 그래서 `log-hook`이 고치기 전의 `path-map`을 남길 수 있다. 새 파일을 만드는 `Write`에는 바뀌기 전의 글이 없다. 로그에 무엇을 남기는지와 경로 표의 줄을 누가 적는지는 아직 정하지 않았다.
-- **`~/.mem-hook`의 스크립트**: `path-map`의 rule은 그 파일 하나만 가리킨다. 같은 폴더의 `load-hook`은 Manual과 `dontAsk`에서 `Read`도 `Edit`도 거부된다. auto mode에서는 allow rule이 하나도 없어도 사람이 직접 시킨 `load-hook` 고치기가 실행된다(Claude Code 2.1.327의 `claude -p`에서 확인). auto mode에서 이것을 막을지는 아직 정하지 않았다.
+- **`~/.mem-hook`의 스크립트**: 에이전트는 `load-hook`, `log-hook`, `mem-file`을 고치지 못한다. `permissions.deny`에 `Edit(~/.mem-hook/load-hook)`, `Edit(~/.mem-hook/log-hook)`, `Edit(~/.mem-hook/mem-file)`을 둔다. Claude Code의 auto mode에서는 사람이 load되지 않는다는 결과만 말해도 에이전트가 설치된 `load-hook`을 고쳤고, allow rule이 없어도 실행됐다(Claude Code 2.1.327의 `claude -p`에서 확인). 그렇게 고친 스크립트는 저장소와 어긋나고 다음 `install`에서 사라진다. 스크립트는 저장소에서 고치고 `install`을 다시 돌린다. 사람이 설치된 스크립트를 고치라고 직접 시켜도 거부된다.
+- **스크립트의 deny rule이 막는 것**: deny rule은 permission mode를 가리지 않고 통하고, auto mode에서 `Edit`, `Write`, redirect, `sed -i`, `cp`를 막는다(Claude Code 2.1.327의 `claude -p`에서 Manual, auto, `dontAsk`, `acceptEdits`로 확인). rule은 스크립트마다 하나씩 둔다. 폴더 전체에 걸면 `path-map`도 막히기 때문이다(같은 버전에서 확인). 스크립트를 읽는 것과 `~/.mem-hook`에 새 파일을 만드는 것을 막는 rule은 두지 않는다. `python3 -c`처럼 스스로 파일을 여는 명령은 deny rule에 걸리지 않는다(같은 버전에서 확인). 그런 명령으로 스크립트를 고친 것이 확인되면 Claude Code의 `autoMode.hard_deny`에 막는 글을 얹는다. `mem-file`에 건 deny rule이 `mem-file` 호출을 막지 않는지와 에이전트가 돌리는 `install`이 deny rule에 걸리지 않는지는 아직 확인하지 않았다. 앞의 것이 막히면 `mem-file`의 rule만 빼고, 뒤의 것이 걸리면 사람이 `install`을 직접 돌린다.
 - **직접 부른 `mv`·`rm`**: 에이전트가 shell의 `mv`나 `rm`을 직접 부르는 것은 따로 막지 않는다. `mem-file`을 거치지 않은 옮김이 확인되면 hook으로 막는 것을 얹는다.
 - **거부되거나 실패한 `mem-file` 호출**: 에이전트는 다시 시도하지 않고 다른 길로 돌아가지 않는다. 파일을 있던 자리에 두고, 그 세션의 답에 한 줄로 알린다. 알리는 줄의 모양은 아직 정하지 않았다.
 - **쓰는 세션**: preamble을 받은 세션은 쓴다. 대화형 세션, 사람 없이 한 번 돌고 끝나는 세션(Claude Code의 `claude -p`), 터미널에서 떼어 돌리는 세션(Claude Code의 background 세션)을 가르지 않는다.
@@ -242,7 +243,7 @@ python3 install
 
 `install`은 항목마다 "만듦"이나 "이미 있음"을 한 줄씩 찍는다. `path-map`은 만들지 않는다. `path-map`이 없는 것이 처음 설치한 기기의 상태이기 때문이다. `glossary.md`와 `criteria.md`를 `install`이 놓는지는 아직 정하지 않았다.
 
-스크립트 셋을 `~/.mem-hook/`에 복사해 두면 설정과 preamble이 가리키는 경로가 저장소 clone의 자리와 무관해서, clone을 옮기거나 다른 브랜치를 checkout해도 hook이 돈다. 스크립트를 고친 뒤에는 `install`을 다시 돌린다.
+스크립트 셋을 `~/.mem-hook/`에 복사해 두면 설정과 preamble이 가리키는 경로가 저장소 clone의 자리와 무관해서, clone을 옮기거나 다른 브랜치를 checkout해도 hook이 돈다. 스크립트는 저장소에서 고치고, 고친 뒤에는 `install`을 다시 돌린다.
 
 `install`이 user settings에 더하는 줄은 아래와 같다.
 
@@ -257,6 +258,11 @@ python3 install
     "Edit(~/.mem/**)",
     "Bash(python3 <home의 절대 경로>/.mem-hook/mem-file *)",
     "Edit(~/.mem-hook/path-map)"
+  ],
+  "deny": [
+    "Edit(~/.mem-hook/load-hook)",
+    "Edit(~/.mem-hook/log-hook)",
+    "Edit(~/.mem-hook/mem-file)"
   ]
 },
 "autoMemoryEnabled": false
@@ -265,7 +271,7 @@ python3 install
 - **경로의 철자**: hook 명령 둘은 `$HOME`으로 적고, `Bash` allow rule만 home의 절대 경로로 적는다. Claude Code의 allow rule과 에이전트가 부르는 명령은 철자가 글자로 맞아야 하고, preamble이 절대 경로로 명령을 이르기 때문이다. 에이전트가 부르는 명령은 `python3 <home의 절대 경로>/.mem-hook/mem-file mv <옮길 파일> <놓을 자리>`와 `python3 <home의 절대 경로>/.mem-hook/mem-file rm <지울 파일>`이다.
 - **`SessionStart`**: matcher를 두지 않는다. resume과 `fork`에서 load하는지가 정해져도 설정을 다시 쓰지 않기 위해서다. load할지는 `load-hook`이 가른다(#1단계가 load하는 방식).
 - **`PostToolUse`**: `log-hook`은 matcher `Write|Edit`로 건다. 도구 호출마다 `python3`를 띄우지 않기 위해서다. `mem-file` 호출을 `log-hook`이 적기로 정해지면 matcher에 `Bash`를 더한다. `mem-file` 호출을 `log-hook`이 적는지는 아직 정하지 않았다.
-- **`permissions`**: 줄마다 무엇을 묻지 않게 하는지는 #누가 무엇을 하나에 적는다.
+- **`permissions`**: 줄마다 무엇을 묻지 않게 하고 무엇을 막는지는 #누가 무엇을 하나에 적는다. `deny`의 rule은 `install`이 복사하는 스크립트마다 하나씩이다.
 - **auto memory**: 세션 도중에 끈 것은 그 대화에 걸리지 않아서, 설치한 뒤 새로 여는 세션부터 꺼진다. 이미 있는 auto memory의 기억 파일은 지워지지 않는다.
 - **설정이 빠진 것**: `install`은 한 일을 찍기만 한다. 그 줄이 Claude Code에서 통하는지는 테스트의 설치 확인이 본다(#기능). `load-hook`이 세션마다 설정을 읽어 빠진 것을 세션 시작 줄에 띄우는 것은, 설치 뒤에 설정이 빠진 채 돈 세션이 확인될 때 얹는다.
 
