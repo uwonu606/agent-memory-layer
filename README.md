@@ -39,7 +39,7 @@ Claude Code 밖에서도 쓴다는 요구를 둔다. Claude Code부터 만들고
 
 | 단계 | 하는 일 | 같이 보이는 줄 |
 |---|---|---|
-| 1 | 작업 위치로 받는 layer를 찾아 세션 시작과 compaction(대화가 길어져 harness가 앞 내용을 줄이는 일) 뒤에 load한다. 에이전트가 요청과 판단으로 원문을 쓰고, 넘김 기준을 거쳐 변환과 분류를 하고, 모든 단계를 로그에 남긴다 | 세션 시작 줄(load한 목록, 보류·미분류 건수, 넘음 표시) |
+| 1 | 작업 위치로 받는 layer를 찾아 세션을 열 때마다(새로 열기, 다시 열기, 갈라 열기)와 compaction(대화가 길어져 harness가 앞 내용을 줄이는 일) 뒤에 load한다. 에이전트가 요청과 판단으로 원문을 쓰고, 넘김 기준을 거쳐 변환과 분류를 하고, 모든 단계를 로그에 남긴다 | 세션 시작 줄(load한 목록, 보류·미분류 건수, 넘음 표시) |
 | 이후 | decision은 고치지 않고 새 파일로 쌓고, 옛 decision은 load하지 않는 자리로 옮긴다 | 얹을 때 정한다 |
 
 이후 단계를 얹는 때와 세부는 아직 정하지 않았다.
@@ -269,7 +269,7 @@ python3 install
 ```
 
 - **경로의 철자**: hook 명령 둘은 `$HOME`으로 적고, `Bash` allow rule만 home의 절대 경로로 적는다. Claude Code의 allow rule과 에이전트가 부르는 명령은 철자가 글자로 맞아야 하고, preamble이 절대 경로로 명령을 이르기 때문이다. 에이전트가 부르는 명령은 `python3 <home의 절대 경로>/.mem-hook/mem-file mv <옮길 파일> <놓을 자리>`와 `python3 <home의 절대 경로>/.mem-hook/mem-file rm <지울 파일>`이다.
-- **`SessionStart`**: matcher를 두지 않는다. resume과 `fork`에서 load하는지가 정해져도 설정을 다시 쓰지 않기 위해서다. load할지는 `load-hook`이 가른다(#1단계가 load하는 방식).
+- **`SessionStart`**: matcher를 두지 않는다. `load-hook`이 시작 방식 다섯 모두에서 load하기 때문이다(#1단계가 load하는 방식).
 - **`PostToolUse`**: `log-hook`은 matcher `Write|Edit`로 건다. 도구 호출마다 `python3`를 띄우지 않기 위해서다. `mem-file` 호출을 `log-hook`이 적기로 정해지면 matcher에 `Bash`를 더한다. `mem-file` 호출을 `log-hook`이 적는지는 아직 정하지 않았다.
 - **`permissions`**: 줄마다 무엇을 묻지 않게 하고 무엇을 막는지는 #누가 무엇을 하나에 적는다. `deny`의 rule은 `install`이 복사하는 스크립트마다 하나씩이다.
 - **auto memory**: 세션 도중에 끈 것은 그 대화에 걸리지 않아서, 설치한 뒤 새로 여는 세션부터 꺼진다. 이미 있는 auto memory의 기억 파일은 지워지지 않는다.
@@ -280,7 +280,9 @@ python3 install
 `load-hook`이 `SessionStart` hook으로 돈다. 작업 위치로 받는 layer를 찾고, preamble, `criteria.md`, 전역부터 받는 layer까지 각 layer의 항목을 그 순서로 이어 `additionalContext`로 넣고, 세션 시작 줄을 `systemMessage`로 띄운다. preamble은 hook이 기억 앞에 붙이는 지시 글이다. `sorted/` 밖(`unsorted/`, `hold/`, `glossary.md`)은 load하지 않는다.
 
 - **preamble**: 첫 문장은 load된 기억이 지시 파일과 사용자가 말하지 않을 때만 따르는 기본값이라고 이른다. 기억이 지시 파일이나 사용자 말과 부딪힐 때의 기준이다. 기억을 다루는 규칙(쓸 곳의 경로, `mem-file`을 부르는 법)은 preamble이 직접 이른다. 경로는 hook이 home을 풀어 절대 경로로 적는다. Claude Code의 `Write`와 `Edit`은 절대 경로를 받는데, 모델이 `~`를 스스로 풀면 실제 home과 다른 경로를 넣는 일이 있어서다. 이 규칙을 적는 문장과 나머지 글(판단·넘김·변환·분류·로그를 어떻게 하라는 지시)은 아직 정하지 않았다.
-- **시점**: Claude Code는 시작 방식마다 `load-hook`을 부르고, `load-hook`이 hook 입력의 시작 방식을 읽어 load할지 가른다. startup·clear·compact에서 load하고 resume에서는 load하지 않는다. `fork`로 시작할 때와 resume 때의 시점은 아직 정하지 않았다.
+- **시점**: Claude Code는 시작 방식(startup·resume·clear·compact·`fork`)마다 `load-hook`을 부르고, `load-hook`은 시작 방식을 가르지 않고 매번 지금 기억 전부를 load한다. 닫혀 있던 사이에 `~/.mem`이 바뀐 것을 다시 연 세션이 받게 하기 위해서다.
+- **겹침**: 다시 열거나(resume) 갈라 연(`fork`) 세션의 대화에는 앞서 load된 글이 남아 있어서, 열 때마다 글이 한 벌씩 더 쌓이고 다음 compaction에서 사라진다. 이 겹침은 받아들인다.
+- **앞서 load된 글**: preamble은 load마다 같은 문장으로 셋을 이른다. 앞서 load된 글은 그때의 기억이고, 이 글이 지금 기억이고, 둘이 다른 곳은 그 사이에 바뀐 것이며 따르는 것은 이 글이다. 무엇이 바뀌었는지는 load에 싣지 않고 로그에서 찾는다. 문장의 글자는 아직 정하지 않았다.
 - **10,000자 넘음**: 상한 없이 다 넣고 세션 시작 줄에 `10,000자 넘음`을 붙인다. Claude Code는 넣는 글이 10,000자를 넘으면 그 글을 파일로 돌리고, 모델에게는 그 파일의 경로와 앞 2,000자까지의 미리보기만 준다. Claude Code는 모델에게 그 파일을 읽으라고 시키지 않는다. 그때는 세션 시작 줄이 모델이 받은 것과 다르다. 넘칠 때 색인으로 가는지는 아직 정하지 않았다.
 - **md가 아닌 파일**: `sorted/` 안에서 load하지 않고 세션 시작 줄에 이름을 띄운다. 줄의 모양은 아직 정하지 않았다.
 
@@ -301,6 +303,8 @@ python3 install
 줄을 hook이 적는 것(Claude Code에서 쓰기 호출을 보고 적는다)과 에이전트가 적는 것을 출처로 나눈다. 보장하는 범위는 hook이 본 것까지(쓴 것까지)다. 쓰지 않기로 한 판단은 도구 호출이 없어서 hook이 볼 사건이 없고, 에이전트가 적을 때만 남는다.
 
 로그에는 덧붙이기만 하고 고치거나 지우지 않는다. 로그는 사람이 찾고 정리하는 길이 있다. 로그의 자리와 줄 형식은 아직 정하지 않았다.
+
+기억이 바뀌거나 지워질 때 바뀌기 전의 내용과, 세션이 load로 받은 글은 로그에서 되찾을 수 있어야 한다. 되찾는 방식은 아직 정하지 않았다.
 
 ### 필드
 
