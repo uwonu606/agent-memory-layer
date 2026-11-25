@@ -141,7 +141,7 @@ permission mode의 `default`는 Manual이라 부르는 mode의 설정값이다. 
 | 10,000자 상한을 재는 단위 | 문자열 하나마다 따로 잰다. 같은 event에 hook 여럿이 돌아도 합쳐 재지 않는다. 올리는 설정은 없다 |
 | 여러 hook과 여러 자리를 합친 상한 | 적혀 있지 않다 |
 
-확인: 2026-11-25에 `hooks.md`를 읽었다(그때 changelog 맨 위 2.1.332). 실제 세션에서 글이 들어가는 것을 본 자리는 `SessionStart`뿐이다.
+확인: 2026-11-25에 `hooks.md`를 읽었다(그때 changelog 맨 위 2.1.332). 실제 세션에서 글이 들어가는 것을 본 자리는 `SessionStart`와 `Stop`이다. `Stop`은 아래 #답이 끝날 때와 세션이 끝날 때의 확인 줄에 있다.
 
 `PreToolUse`의 글이 결과 곁에 놓인다면 그 글은 그 호출을 바꾸지 못하고 다음 판단부터 닿는다고 끌어냈다. 호출보다 먼저 도는 hook의 글이 어떻게 결과 곁에 놓이는지는 문서에 없다.
 
@@ -158,6 +158,8 @@ permission mode의 `default`는 Manual이라 부르는 mode의 설정값이다. 
 | 무엇 | 문서가 적은 것 |
 |---|---|
 | `Stop`이 도는 때 | 주 agent가 답을 마칠 때 돈다. 사람이 끊어서 멈춘 답에는 돌지 않고, API 오류로 멈추면 `StopFailure`가 대신 돈다 |
+| `Stop`에서 모델에게 글 넣기 | `hookSpecificOutput.additionalContext`는 hook 오류가 아닌 feedback으로 들어가고, 모델이 그 글을 보고 움직일 수 있게 대화가 이어진다. `decision: "block"`도 대화를 잇지만 hook 오류로 표시된다 |
+| `Stop`이 대화를 이을 때의 되풀이 막기 | 이미 `Stop` hook 때문에 이어지는 중이면 hook 입력의 `stop_hook_active`가 참이다. 연달아 여덟 번 이어지면 Claude Code가 다음 것을 무시하고 turn을 끝낸다. 이 수는 모델이 도구를 부를 때마다 다시 센다 |
 | `async: true` | command hook에 두면 Claude Code가 hook을 뒤에서 돌리고 기다리지 않는다. 뒤에서 도는 동안에는 `timeout`을 걸지 않는다 |
 | 뒤에서 돈 hook의 출력 | hook이 끝나면 그 `additionalContext`와 `systemMessage`가 다음 turn에 모델에게 간다. 사람 화면에는 뜨지 않는다 |
 | 뒤에서 도는 hook과 세션의 끝 | `claude -p`는 끝날 때 아직 도는 async hook을 죽인다. 세션보다 오래 살아야 하는 일은 hook에서 완전히 떼어 낸 process로 띄우라고 적는다. 대화형 세션이 닫힐 때는 적혀 있지 않다 |
@@ -166,7 +168,7 @@ permission mode의 `default`는 Manual이라 부르는 mode의 설정값이다. 
 | `SessionEnd`의 출력 | JSON 출력은 버려져서 `systemMessage`도 뜨지 않는다 |
 | 비정상 종료 | `claude -p`가 SIGTERM을 받으면 `SessionEnd` hook을 돌리고 exit code 143으로 끝난다. Ctrl+C, 터미널 닫기, process가 죽는 경우는 적혀 있지 않다 |
 
-확인: 2026-11-25에 `hooks.md`와 `headless.md`를 읽었다(2.1.332). 이 절은 모두 문서로만 읽었고 실제 세션에서 돌려 보지 않았다. 대화형 세션이 닫힌 뒤에도 async hook이 띄운 처리가 살아남는지는 두 문서에 없어서, 실제 세션에서 봐야 안다.
+확인: 2026-11-25에 `hooks.md`와 `headless.md`를 읽었다(2.1.332). 실제 세션에서 본 것은 `Stop` 하나다. 2026-11-26에 2.1.332의 `claude -p`와 대화형 세션에서 `Stop` hook이 답이 끝날 때마다 돌았고, 입력의 `session_id`와 `transcript_path`로 그 답을 시킨 사람의 말을 읽을 수 있었으며, `systemMessage`가 대화형 화면에 `Stop says: <글>`로 떴다. 같은 날 2.1.332의 `claude -p`에서 `Stop` hook이 `additionalContext`를 내자 대화가 이어졌고, 모델이 그 글에 적힌 기억 파일을 같은 답에서 고쳤다(네 번 봤다). 그 세션의 stream-json에는 `systemMessage`가 `Stop says: <글>`인 system 줄로 남았다. `stop_hook_active`와 여덟 번의 상한은 2026-11-26에 `hooks.md`를 다시 받아 읽었고(changelog 맨 위 2.1.332) 돌려 보지 않았다. 나머지는 문서로만 읽었다. 대화형 세션이 닫힌 뒤에도 async hook이 띄운 처리가 살아남는지는 두 문서에 없어서, 실제 세션에서 봐야 안다.
 
 ## prompt caching은 다시 읽는 글을 싸게 한다
 
