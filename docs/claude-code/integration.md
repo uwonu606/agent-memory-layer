@@ -2,7 +2,7 @@
 
 한 사이클을 돌린 거친 도구(구조를 고르기 전에 만든 시제품)는 Claude Code를 고치지 않고, user settings에 hook 둘과 권한 몇 줄과 auto memory를 끄는 한 줄을 더해서 붙었다.
 
-구조는 아직 고르지 않았다. 세션 뒤에 batch로 쓰거나 뜻으로 검색해 싣는 제품은 다른 자리에 붙을 수 있다. 같은 자리를 쓰는 제품이면 이 글에 적은 걸리는 것이 그대로 걸린다.
+지금 제품인 얹는 제품은 auto memory를 켠 채 `SessionStart`와 `Stop`에 붙는다([얹는 제품](../../products/overlay/README.md)). 같은 자리를 쓰는 제품이면 이 글에 적은 hook의 출력에 걸리는 것이 그대로 걸린다.
 
 이 글은 [Claude Code 동작](../claude-code.md)의 둘째 글이다. 붙는 자리의 바탕은 [Claude Code의 구조와 동작](structure.md)에 있다. 이 글에서 쓰는 이름은 셋이다.
 

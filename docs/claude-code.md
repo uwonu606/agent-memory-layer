@@ -1,6 +1,6 @@
 # Claude Code 동작
 
-한 사이클을 돌린 거친 도구(구조를 고르기 전에 만든 시제품)는 Claude Code의 세션이 시작할 때 hook으로 기억을 싣고, 모델이 파일 도구로 쓴 것을 hook으로 적었으며, 원래의 auto memory는 껐다. 구조는 아직 고르지 않아서, 다른 방식의 제품은 다른 자리에 붙을 수 있다.
+한 사이클을 돌린 거친 도구(구조를 고르기 전에 만든 시제품)는 Claude Code의 세션이 시작할 때 hook으로 기억을 싣고, 모델이 파일 도구로 쓴 것을 hook으로 적었으며, 원래의 auto memory는 껐다. 지금 제품인 얹는 제품은 auto memory를 켠 채 두고, 세션이 시작할 때와 답이 끝날 때의 hook에 붙는다. 그 자리와 동작은 [얹는 제품](../products/overlay/README.md)에 있다.
 
 이 글은 목차다. 내용은 아래 글 셋에 있고, Claude Code가 바뀌면 그 글의 "다시 조사할 때"에 적힌 절만 다시 본다.
 
@@ -23,7 +23,7 @@ Claude Code 세션
 |---|---|
 | [Claude Code의 구조와 동작](claude-code/structure.md) | 세션이 어떻게 시작하고, 모델이 무엇을 받고, hook과 권한이 어디서 끼어드나 |
 | [거친 도구가 붙은 자리](claude-code/integration.md) | 한 사이클을 돌린 거친 도구가 어느 자리에 어떤 설정으로 붙었고, 거기서 무엇에 걸렸나 |
-| [원래 auto memory의 동작](claude-code/auto-memory.md) | 끄기 전의 auto memory는 어디에 두고, 무엇을 싣고, 어떻게 쓰나 |
+| [원래 auto memory의 동작](claude-code/auto-memory.md) | auto memory는 기억을 어디에 두고, 무엇을 싣고, 어떻게 쓰나 |
 
 ## 믿는 정도
 

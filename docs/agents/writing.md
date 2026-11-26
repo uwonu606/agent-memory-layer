@@ -1,6 +1,6 @@
 # 글 쓰는 규칙
 
-올라가는 문서(`README.md`, `GLOSSARY.md`, `docs/`, `tools/`의 README)를 쓰거나 고칠 때 지킨다. 고친 글이 아래 규칙 전부에 맞으면 끝난 것이다.
+올라가는 문서(`README.md`, `GLOSSARY.md`, `docs/`, `products/`의 README)를 쓰거나 고칠 때 지킨다. 고친 글이 아래 규칙 전부에 맞으면 끝난 것이다.
 
 ## 담는 것
 
@@ -28,10 +28,9 @@
 
 | 적는 것 | 적는 곳 |
 |---|---|
-| 전이의 이름, 어디서 어디로 가는지, 계기 | `docs/design/state.md` |
-| 전이마다의 규칙과 까닭 | `docs/design/storing.md`나 `docs/design/using.md`에 한 번 |
-| 불변식 | `tools/state-check/README.md`의 표 |
-| 제품 축, 뺀 것, 열어 둔 물음 | `docs/design.md`의 표 |
+| 얹는 제품의 뼈대, 예산, 제품 축, 뺀 것, 열어 둔 물음 | `docs/design.md`의 표 |
+| 지켜 온 제약, 새 요구를 거른 기록 | `docs/constraints/agent-memory-layer.md` |
+| 장치마다의 동작과 판단 | `products/overlay/README.md` |
 | 만드는 순서와 판단의 근거 | `docs/direction.md` |
 | Claude Code에 묶인 사실 | `docs/claude-code/` |
 
