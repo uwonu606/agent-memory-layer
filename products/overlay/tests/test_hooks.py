@@ -443,7 +443,7 @@ class CostStopTest(CostHookCase):
             "memory_calls": {"read": {"count": 1, "result_chars": len(REDIS_PORT)},
                              "write": {"count": 1, "result_chars": len("edited")}},
             "notice_chars": len(notice), "stop_hook_active": False, "reread_chars": 3 * self.loaded_chars,
-            "claude_code_hook_ms": [41]})
+            "claude_code_hook_ms": [41], "last_message_id": "m3"})
         lines = output["systemMessage"].splitlines()
         self.assertEqual(lines[:2], [self.changes_line(), "옛 값을 품은 다른 기억 1개를 모델에게 알렸다: local-stack.md (6380)."])
         self.assertEqual(lines[2], (
@@ -476,8 +476,8 @@ class CostStopTest(CostHookCase):
         self.assertGreater(record["transcript_offset"], first_offset)
 
     def test_an_unfinished_last_line_waits_for_the_next_stop(self) -> None:
-        finished = model_turn("m1", [{"type": "text", "text": "앞"}], token_usage(1, 1, 1, 1))
-        unfinished = jsonl_text(model_turn("m2", [{"type": "text", "text": "뒤"}], token_usage(1, 1, 1, 1)))
+        finished = model_turn("m1", [{"type": "text", "text": "앞"}], token_usage(1, 1, 1, 1))[1:]
+        unfinished = jsonl_text(model_turn("m2", [{"type": "text", "text": "뒤"}], token_usage(1, 1, 1, 1))[1:])
         self.append_transcript(finished)
         with open(self.transcript, "a", encoding="utf-8") as handle:
             handle.write(unfinished[:-1])
@@ -490,6 +490,39 @@ class CostStopTest(CostHookCase):
 
         self.assertEqual(self.last_answer()["requests"], 1)
         self.assertEqual(self.last_answer()["transcript_offset"], self.transcript.stat().st_size)
+
+    def test_a_response_written_after_the_stop_read_the_transcript_counts_in_the_next_answer(self) -> None:
+        request = {"type": "api-request", "querySource": "repl_main_thread"}
+        first_response = model_turn("m1", [{"type": "thinking"}, {"type": "tool_use", "id": "t1", "name": "Bash",
+                                                                 "input": {"command": "ls"}}], token_usage(1, 10, 100, 5))
+        self.append_transcript([*PORT_PROMPT, request, *first_response[1:], tool_result_line("t1", "ok"), request])
+
+        self.end_answer()
+
+        first = self.last_answer()
+        self.assertEqual((first["requests"], first["usage"], first["query_sources"], first["last_message_id"]),
+                         (2, token_usage(1, 10, 100, 5), {"repl_main_thread": 2}, "m1"))
+        late_response = model_turn("m2", [{"type": "text", "text": "늦게 적힌 답 글"}], token_usage(2, 20, 200, 50))[1:]
+        self.append_transcript([*late_response, *PORT_PROMPT, request,
+                                *model_turn("m3", [{"type": "text", "text": "다음 답"}], token_usage(3, 30, 300, 7))[1:]])
+
+        self.end_answer()
+
+        second = self.last_answer()
+        self.assertEqual((second["requests"], second["usage"], second["reread_chars"], second["last_message_id"]),
+                         (1, token_usage(5, 50, 500, 57), self.loaded_chars, "m3"))
+
+    def test_a_message_id_split_across_two_answers_is_counted_once(self) -> None:
+        tokens = token_usage(1, 10, 100, 5)
+        response = model_turn("m1", [{"type": "thinking"}, {"type": "text", "text": "끝"}], tokens)
+        self.append_transcript(response[:2])
+        self.end_answer()
+        self.append_transcript(response[2:])
+
+        self.end_answer()
+
+        self.assertEqual([record["usage"] for record in self.cost_records() if record["event"] == "answer_end"],
+                         [tokens, token_usage(0, 0, 0, 0)])
 
     def test_requests_after_a_stop_hook_continued_the_answer_are_summed_apart(self) -> None:
         self.append_transcript(model_turn("m1", [{"type": "text", "text": "앞"}], token_usage(1, 1, 1, 1)))

@@ -29,6 +29,8 @@ UNCOUNTED_IN_FULL = (
     "hook 안에서 잰 시간에 들지 않는, Python이 뜨는 시간. Claude Code가 잰 hook 시간에는 든다",
     "구독의 사용 한도에 얼마로 잡히는지",
     "`~`나 상대 경로, 변수로 기억 폴더를 부른 shell 호출과, 기억 폴더 밖의 경로로 들어간 호출(링크 따위)",
+    "대화형 세션에서 `Stop` hook이 transcript를 읽은 뒤에 적히는 답의 마지막 응답의 token. 다음 답의 몫으로 들어가고, "
+    "세션의 마지막 답의 마지막 응답은 세지 못한다",
 )
 
 
@@ -144,11 +146,13 @@ class TranscriptSlice:
     next_offset: int
 
 
-def read_answer_usage(transcript_path: Path | None, offset: int, memory_dir: Path) -> TranscriptSlice:
+def read_answer_usage(transcript_path: Path | None, offset: int, memory_dir: Path,
+                      counted_message_id: str | None = None) -> TranscriptSlice:
     if transcript_path is None or not transcript_path.is_file():
         return TranscriptSlice(None, offset)
     lines, next_offset = complete_lines_from(transcript_path, offset)
-    return TranscriptSlice(answer_usage(transcript_entries(lines), MemoryFolderMatcher(memory_dir)), next_offset)
+    answer = answer_usage(transcript_entries(lines), MemoryFolderMatcher(memory_dir), counted_message_id)
+    return TranscriptSlice(answer, next_offset)
 
 
 def complete_lines_from(path: Path, offset: int) -> tuple[list[str], int]:
@@ -199,8 +203,11 @@ class MemoryFolderMatcher:
         return None
 
 
-def answer_usage(entries: Iterator[dict[str, Any]], memory_folder: MemoryFolderMatcher) -> AnswerUsage:
+def answer_usage(entries: Iterator[dict[str, Any]], memory_folder: MemoryFolderMatcher,
+                 counted_message_id: str | None = None) -> AnswerUsage:
     usage_by_message: dict[str, dict[str, Any]] = {}
+    last_message_id = counted_message_id
+    api_requests = 0
     query_sources: Counter[str] = Counter()
     memory_call_kinds: dict[str, str] = {}
     result_chars: dict[str, int] = {}
@@ -213,8 +220,10 @@ def answer_usage(entries: Iterator[dict[str, Any]], memory_folder: MemoryFolderM
                 continue
             message_id = message.get("id")
             if isinstance(message_id, str):
-                usage = message.get("usage")
-                usage_by_message[message_id] = usage if isinstance(usage, dict) else {}
+                last_message_id = message_id
+                if message_id != counted_message_id:
+                    usage = message.get("usage")
+                    usage_by_message[message_id] = usage if isinstance(usage, dict) else {}
             for block in content_blocks(message):
                 if block.get("type") == "tool_use" and isinstance(block.get("id"), str):
                     call_kind = memory_folder.call_kind(block)
@@ -225,7 +234,8 @@ def answer_usage(entries: Iterator[dict[str, Any]], memory_folder: MemoryFolderM
             for block in content_blocks(message) if isinstance(message, dict) else ():
                 if block.get("type") == "tool_result" and isinstance(block.get("tool_use_id"), str):
                     result_chars[block["tool_use_id"]] = tool_result_length(block.get("content"))
-        elif kind == "api-request":
+        elif kind == "api-request" and not entry.get("isSidechain"):
+            api_requests += 1
             source = entry.get("querySource")
             if isinstance(source, str):
                 query_sources[source] += 1
@@ -234,11 +244,12 @@ def answer_usage(entries: Iterator[dict[str, Any]], memory_folder: MemoryFolderM
             if duration is not None:
                 hook_ms.append(duration)
     return AnswerUsage(
-        requests=len(usage_by_message),
+        requests=api_requests or len(usage_by_message),
         usage={name: sum(token_count(usage.get(name)) for usage in usage_by_message.values()) for name in USAGE_FIELDS},
         query_sources=dict(query_sources),
         memory_calls=memory_calls_of(memory_call_kinds, result_chars),
         harness_hook_ms=hook_ms,
+        last_message_id=last_message_id,
     )
 
 

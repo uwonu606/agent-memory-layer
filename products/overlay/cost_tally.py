@@ -110,6 +110,7 @@ class AnswerUsage:
     query_sources: dict[str, int]
     memory_calls: MemoryCalls
     harness_hook_ms: list[int]
+    last_message_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -148,6 +149,7 @@ class AnswerEndRecord:
     reread_chars: int | None
     hook_ms: int
     claude_code_hook_ms: list[int] | None = field(default=None)
+    last_message_id: str | None = None
 
     def to_json(self) -> dict:
         return {"event": "answer_end", "at": self.at, "transcript_offset": self.transcript_offset,
@@ -155,7 +157,7 @@ class AnswerEndRecord:
                 "memory_calls": self.memory_calls.to_json() if self.memory_calls is not None else None,
                 "notice_chars": self.notice_chars, "stop_hook_active": self.stop_hook_active,
                 "reread_chars": self.reread_chars, "hook_ms": self.hook_ms,
-                "claude_code_hook_ms": self.claude_code_hook_ms}
+                "claude_code_hook_ms": self.claude_code_hook_ms, "last_message_id": self.last_message_id}
 
     @classmethod
     def from_json(cls, record: dict) -> AnswerEndRecord:
@@ -163,7 +165,7 @@ class AnswerEndRecord:
         return cls(record["at"], record["transcript_offset"], record.get("requests"), record.get("usage"),
                    record.get("query_sources"), MemoryCalls.from_json(calls) if calls is not None else None,
                    record["notice_chars"], record["stop_hook_active"], record.get("reread_chars"),
-                   record["hook_ms"], record.get("claude_code_hook_ms"))
+                   record["hook_ms"], record.get("claude_code_hook_ms"), record.get("last_message_id"))
 
     @property
     def transcript_known(self) -> bool:
@@ -227,6 +229,11 @@ def last_transcript_offset(records: Sequence[CostRecord]) -> int:
     return answers[-1].transcript_offset if answers else 0
 
 
+def last_counted_message_id(records: Sequence[CostRecord]) -> str | None:
+    answers = [record for record in records if isinstance(record, AnswerEndRecord)]
+    return answers[-1].last_message_id if answers else None
+
+
 def answer_end_record(
     records: Sequence[CostRecord],
     now: datetime,
@@ -250,6 +257,7 @@ def answer_end_record(
         reread_chars=reread,
         hook_ms=hook_ms,
         claude_code_hook_ms=answer.harness_hook_ms if answer else None,
+        last_message_id=answer.last_message_id if answer else last_counted_message_id(records),
     )
 
 

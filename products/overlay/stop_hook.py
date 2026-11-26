@@ -26,7 +26,14 @@ from claude_code import (
     read_hook_input,
     restore_command,
 )
-from cost_tally import CostBook, answer_end_record, describe_answer_cost, elapsed_ms, last_transcript_offset
+from cost_tally import (
+    CostBook,
+    answer_end_record,
+    describe_answer_cost,
+    elapsed_ms,
+    last_counted_message_id,
+    last_transcript_offset,
+)
 from memory_journal import AnswerEnded, describe_answer_changes, sync
 from old_values import find_old_value_mentions, old_value_notice
 
@@ -65,7 +72,8 @@ def answer_cost_line(place: Place, hook_input: dict[str, Any], notice_chars: int
     session = hook_input["session_id"]
     book = CostBook(place.journal_dir, UNCOUNTED_IN_FULL)
     records = book.read(session)
-    transcript = read_answer_usage(transcript_path_of(hook_input), last_transcript_offset(records), place.memory_dir)
+    transcript = read_answer_usage(transcript_path_of(hook_input), last_transcript_offset(records), place.memory_dir,
+                                   last_counted_message_id(records))
     record = answer_end_record(records, datetime.now(timezone.utc), transcript.next_offset, transcript.answer,
                                notice_chars, bool(hook_input.get("stop_hook_active")), elapsed_ms(HOOK_STARTED))
     book.append(session, record, answer_ended=True)

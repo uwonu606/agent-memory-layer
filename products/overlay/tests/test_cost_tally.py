@@ -75,7 +75,7 @@ class AnswerUsageTest(TempFolderCase):
         self.transcript.write_text(jsonl(entries), encoding="utf-8")
         return read_answer_usage(self.transcript, offset, self.memory)
 
-    def test_requests_are_distinct_message_ids_and_usage_is_added_once_per_id(self) -> None:
+    def test_requests_are_the_main_thread_api_request_lines_and_usage_is_added_once_per_id(self) -> None:
         answer = self.read([
             api_request("sdk"),
             assistant("m1", [{"type": "thinking"}], usage(2, 100, 1000, 10)),
@@ -85,12 +85,39 @@ class AnswerUsageTest(TempFolderCase):
             assistant("m2", [{"type": "text", "text": "끝"}], usage(3, 5, 1100, 20)),
             api_request("compact"),
             assistant("m3", [{"type": "text", "text": "옆"}], usage(50, 50, 50, 50), sidechain=True),
+            api_request("sdk") | {"isSidechain": True},
         ]).answer
 
-        self.assertEqual(answer.requests, 2)
+        self.assertEqual(answer.requests, 3)
         self.assertEqual(answer.usage, {"input_tokens": 5, "cache_creation_input_tokens": 105,
                                         "cache_read_input_tokens": 2100, "output_tokens": 30})
         self.assertEqual(answer.query_sources, {"sdk": 2, "compact": 1})
+
+    def test_without_api_request_lines_requests_are_distinct_message_ids(self) -> None:
+        answer = self.read([
+            assistant("m1", [{"type": "thinking"}], usage(1, 1, 1, 1)),
+            assistant("m1", [{"type": "text", "text": "a"}], usage(1, 1, 1, 1)),
+            assistant("m2", [{"type": "text", "text": "b"}], usage(1, 1, 1, 1)),
+        ]).answer
+
+        self.assertEqual((answer.requests, answer.last_message_id), (2, "m2"))
+
+    def test_a_message_id_counted_in_the_previous_slice_is_not_counted_again(self) -> None:
+        self.transcript.write_text(jsonl([
+            assistant("m1", [{"type": "text", "text": "앞 몫에서 센 응답의 나머지 줄"}], usage(9, 9, 9, 9)),
+            assistant("m2", [{"type": "text", "text": "새 응답"}], usage(1, 2, 3, 4)),
+        ]), encoding="utf-8")
+
+        answer = read_answer_usage(self.transcript, 0, self.memory, counted_message_id="m1").answer
+
+        self.assertEqual((answer.requests, answer.usage["output_tokens"], answer.last_message_id), (1, 4, "m2"))
+
+    def test_a_slice_without_responses_keeps_the_counted_message_id(self) -> None:
+        self.transcript.write_text(jsonl([api_request("repl_main_thread")]), encoding="utf-8")
+
+        answer = read_answer_usage(self.transcript, 0, self.memory, counted_message_id="m1").answer
+
+        self.assertEqual((answer.requests, answer.last_message_id), (1, "m1"))
 
     def test_the_last_line_of_a_message_id_gives_its_usage(self) -> None:
         answer = self.read([

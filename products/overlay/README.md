@@ -112,7 +112,7 @@ Claude Code의 auto memory를 켠 채 두고, 그 위에 장치를 하나씩 얹
 | 얹는 제품의 지시 글 | `memory-rules.md`의 글(앞뒤 공백을 뺀 것)이 `~/.claude/CLAUDE.md`에 글자 그대로 들어 있으면 그 글자 수. 없으면 찾지 못함으로 적는다 | `SessionStart` |
 | hook의 시간 | 스크립트 맨 위부터 기록 줄을 쓰기 직전까지 hook 안에서 잰 ms | 두 hook 모두 |
 | Claude Code가 잰 hook 시간 | transcript의 `attachment` 줄 가운데 `hook_success`나 `hook_non_blocking_error`이고 명령에 이 폴더의 경로가 든 것의 `durationMs`. `stop_hook_summary`에 다시 나오는 값은 세지 않는다 | `Stop` |
-| 모델 요청과 그 token | 이번 답의 transcript에서 `isSidechain`이 아닌 assistant 줄의 서로 다른 `message.id` 수. token은 id마다 마지막 줄의 `message.usage`를 한 번만 더한다(입력, cache 만듦, cache 읽음, 출력) | `Stop` |
+| 모델 요청과 그 token | 이번에 읽은 transcript에서 `isSidechain`이 참이 아닌 `api-request` 줄의 수. 그 줄이 하나도 없으면 `isSidechain`이 아닌 assistant 줄의 서로 다른 `message.id` 수. token은 읽은 몫의 assistant 줄에서 id마다 마지막 줄의 `message.usage`를 한 번만 더한다(입력, cache 만듦, cache 읽음, 출력). 앞 `Stop`이 마지막으로 센 id는 다음 몫에서 다시 세지 않는다 | `Stop` |
 | 요청의 갈래 | `api-request` 줄의 `querySource`마다의 수 | `Stop` |
 | 모델이 기억 폴더를 다룬 호출 | `Read`·`Write`·`Edit`·`MultiEdit`의 `file_path`, `Grep`·`Glob`의 `path`가 기억 폴더 안이거나, `Bash`의 명령에 기억 폴더의 절대 경로가 든 호출. 읽기(`Read`, `Grep`, `Glob`, `Bash`)와 쓰기로 가르고, 같은 호출의 `tool_result` 글자 수를 더한다 | `Stop` |
 | 모델에게 보낸 알림 | 넷째 장치가 이번 `Stop`에서 낸 `additionalContext`의 글자 수 | `Stop` |
@@ -128,6 +128,7 @@ transcript는 앞 `Stop`이 읽은 자리(byte)부터 끝의 다 쓴 줄까지�
 - hook 안에서 잰 시간에 들지 않는, Python이 뜨는 시간
 - 구독의 사용 한도에 얼마로 잡히는지
 - `~`나 상대 경로, 변수로 기억 폴더를 부른 shell 호출과, 기억 폴더 밖의 경로로 들어간 호출(링크 따위)
+- 대화형 세션에서 `Stop` hook이 transcript를 읽은 뒤에 적히는, 답의 마지막 응답의 token. 그 token은 다음 답의 몫으로 들어가고, 세션의 마지막 답의 마지막 응답은 세지 못한다
 
 ## 붙이는 법
 
@@ -249,6 +250,7 @@ Python 3.10 이상과 표준 라이브러리만 쓴다(돌려 본 것은 3.14다
 | `reread_chars` | 이번 답에서 실린 글을 다시 읽은 양. 모르면 `null` |
 | `hook_ms` | hook 안에서 잰 시간(ms) |
 | `claude_code_hook_ms` | 이번에 읽은 transcript에 나온, 이 폴더의 hook의 `durationMs` 목록. 이번 `Stop`의 값은 hook이 끝난 뒤에 적혀서 다음 `Stop`이 읽는다 |
+| `last_message_id` | 이번까지 마지막으로 센 `message.id`. 다음 `Stop`이 같은 id의 줄을 다시 세지 않게 거른다 |
 
 ### history/의 파일 하나
 
@@ -319,7 +321,7 @@ python3 /path/to/agent-memory-layer/products/overlay/restore.py commit-unit.md 1
 | 화면에는 hook 안에서 잰 값(스크립트 맨 위부터 기록 줄을 쓰기 직전까지)을 Python이 뜨는 시간이 빠졌다는 말과 함께 내고, Claude Code가 잰 `durationMs`는 기록에 적는다 | 화면에 낼 값은 출력을 쓰기 전에 정해져야 한다. `durationMs`는 hook이 끝난 뒤 transcript에 적혀서 그 hook은 자기 값을 읽지 못하고, `Stop`이 읽는 값은 앞 hook들의 것이다. 2.1.332의 `claude -p` 세션 다섯에서 hook 안에서 잰 값은 Claude Code가 잰 값보다 40~50ms 작았고, SessionStart 한 번은 hook 안에서 75ms, Claude Code가 잰 값으로 120ms여서 빠진 몫이 예산 100ms를 갈랐다 | hook이 자기 process 전체의 시간을 출력 전에 알 길이 생길 때, 또는 빠진 몫 때문에 예산을 넘는 hook을 사람이 화면에서 놓치는 일이 보일 때 |
 | `Stop`의 한 줄은 그 답에서 모델이 기억 폴더를 다룬 호출이 있었거나, 넷째 장치가 알렸거나, hook이 100ms를 넘었을 때만 낸다 | 답마다 뜨면 사람이 읽지 않게 된다. 셋은 그 답에서 기억 도구 때문에 대화에 글이 들었거나 일이 늦어진 때다. 나머지는 다음 세션의 첫 화면에 합으로 뜨고 풀이 파일에 답마다 남는다 | 줄이 뜨지 않은 답에서 쓴 양이 크게 는 것이 기록에서 보일 때 |
 | 세션이 시작할 때의 둘째 줄은 `last-session`이 가리키는 세션 하나만 요약한다. 그 세션이 지금 세션이면 지금까지로 적는다 | `costs/`를 훑지 않고 파일 하나만 읽어서, 기록이 길어져도 세션이 시작할 때 읽는 양이 늘지 않는다([비용](../../docs/design/cost.md)의 기록의 길이). 바로 앞 세션이 가장 가까운 견줄 값이다 | 여러 세션을 견줘야 어디서 비용이 느는지 가릴 수 있을 때 |
-| transcript는 앞 `Stop`이 적은 자리(byte)부터 끝의 다 쓴 줄까지만 읽는다 | 세션이 길어져도 `Stop` 한 번의 일이 그 답의 길이에만 붙는다. 덜 쓴 줄은 다음 `Stop`이 읽고, 파일이 작아졌으면 처음부터 읽는다 | transcript가 중간에 고쳐 쓰여 자리가 어긋나는 것이 보일 때 |
+| transcript는 앞 `Stop`이 적은 자리(byte)부터 끝의 다 쓴 줄까지만 읽고, 모델 요청은 그 몫의 `api-request` 줄로 센다. 그 줄이 없을 때만 `message.id`로 센다 | 세션이 길어져도 `Stop` 한 번의 일이 그 답의 길이에만 붙는다. 덜 쓴 줄은 다음 `Stop`이 읽고, 파일이 작아졌으면 처음부터 읽는다. 2.1.332의 대화형 세션에서 모델 요청 둘인 답의 둘째 응답 줄이 `Stop` hook이 transcript를 읽은 뒤에 파일에 적혀, 저장한 자리(439764)가 그 줄의 시작(439951)보다 앞에 있었고 `message.id`로 센 요청이 1이었다. 줄의 timestamp는 hook보다 앞섰다. 같은 답의 `api-request` 줄 둘은 응답보다 먼저 적혀서 2로 맞았다. `claude -p` 세션 여섯에서는 답마다 `message.id` 수와 요청 수가 맞았다 | `api-request` 줄이 응답보다 늦게 적히거나 요청이 그 줄 없이 지나가는 것이 보일 때. compact의 요약 요청은 그 줄로 남지 않았다 |
 | 모델이 기억 폴더를 다룬 호출은 도구 이름과 경로로 가른다. shell은 명령에 기억 폴더의 절대 경로가 들고 그 뒤에 파일 이름의 글자(`A-Za-z0-9._-`)가 이어지지 않는 것만 센다 | 기억 폴더 `~/agent-memory`의 기록 폴더 `~/agent-memory-journal`처럼 이름이 이어지는 폴더를 다룬 명령을 세지 않는다. `~`나 변수로 부른 shell은 놓치고, 세지 못한 것으로 적는다 | 놓친 호출이 실제 세션에서 보일 때 |
 | 쓴 양 세기가 실패해도 다른 장치의 줄과 모델에게 가는 글은 그대로 낸다 | 기억 기록과 넷째 장치의 알림은 쓴 양과 따로 이미 끝났다 | — |
 
@@ -327,11 +329,13 @@ python3 /path/to/agent-memory-layer/products/overlay/restore.py commit-unit.md 1
 
 | 무엇 | 상태 |
 |---|---|
-| 핵심 함수와 hook 스크립트 | `python3 -m unittest discover -s tests -t .`(이 폴더에서)로 88개가 통과한다. 임시 HOME과 임시 기억 폴더에서 hook 둘을 손으로 만든 입력으로 불렀다 |
+| 핵심 함수와 hook 스크립트 | `python3 -m unittest discover -s tests -t .`(이 폴더에서)로 93개가 통과한다. 임시 HOME과 임시 기억 폴더에서 hook 둘을 손으로 만든 입력으로 불렀다 |
 | 넷째 장치의 옛 값 | 위 시험의 `tests/test_old_values.py`가 [옛 값](#옛-값)의 장면마다 찾은 줄을 글자로 댄다. `tests/test_hooks.py`가 `Stop` hook을 process로 띄워 켠 출력, 끈 출력, `stop_hook_active`가 참인 출력을 글자로 댄다. 끈 출력은 둘째 장치만 있을 때의 시험과 같은 글자다 |
 | 넷째 장치의 실제 세션 | 2026-11-26에 Claude Code 2.1.332의 `claude -p`(Sonnet 5.5)에서 돌렸다. 사실 글만 보는 지금의 장치로는, 기억 스물넷 가운데 둘이 같은 옛 값을 품고 사람이 그 값을 기억과 다른 이름으로 부르며 고치게 한 세션을 아홉 번 돌렸다. 모델이 한 기억만 고치고 답을 끝낸 세 번 모두 `Stop`의 `additionalContext`가 대화를 이어 가게 했고, 모델이 알림에 적힌 다른 기억을 같은 답에서 고쳤다. 모델이 두 기억을 함께 고친 세 번과, 아무 기억도 고치지 않고 사람에게 되물은 세 번에는 알리지 않았다. 답 안에서 기억이 바뀌거나 지워지는 다른 세션 열두 번(값이 다른 기억에 없는 고침, 새로 쓴 기억을 지우기)에서도 알리지 않았다. 화면 줄은 stream에 `Stop says:` 아래 두 줄로 남았다. 사실 글을 가리기 전의 장치는 같은 폴더에서 색인 줄을 고친 답 하나가 scope 이름과 자기 파일 이름을 옛 값으로 뽑아 알림이 기억 다섯과 넘친 줄 34개로 찼고, 사실 글의 판단이 그것을 근거로 한다. 대화형 세션에서는 같은 폴더로 한 번 봤다. 기억 하나만 고친 답 아래에 `Stop says:` 두 줄이 떴고, 그 아래에 모델에게 간 글이 `Stop hook says:`로 사람 화면에도 그대로 보였다. 모델이 이어서 다른 기억을 고쳤고, 그 답 아래에는 둘째 장치의 줄만 떴다 |
-| 다섯째 장치의 세는 칸 | 위 시험의 `tests/test_cost_tally.py`가 손으로 만든 transcript로 칸마다 값을 댄다. 모델 요청은 `message.id`마다 한 번, token은 id마다 마지막 줄, 기억 폴더 밖과 sidechain의 호출과 기록 폴더를 다룬 shell은 세지 않음, 앞 자리부터 읽기와 덜 쓴 끝 줄, 작아진 파일, 이 폴더의 hook만의 `durationMs`다. `tests/test_hooks.py`가 hook 둘을 process로 띄워, 인자가 없으면 출력과 기록 폴더가 그 인자가 없을 때와 같은 것, 켠 출력의 줄, 두 번째 `Stop`이 새 줄만 세는 것, 지난 세션 줄과 resume 줄, 세기가 실패해도 exit 0이고 다른 줄과 모델에게 가는 글이 그대로인 것을 댄다. 기억 250개의 색인과 10MB 넘는 transcript에서 `Stop` 한 번이 hook 안에서 잰 100ms 안에 끝나는 것도 댄다 |
+| 다섯째 장치의 세는 칸 | 위 시험의 `tests/test_cost_tally.py`가 손으로 만든 transcript로 칸마다 값을 댄다. 모델 요청은 `api-request` 줄로 세고 그 줄이 없으면 `message.id`마다 한 번, token은 id마다 마지막 줄이고 앞 몫에서 센 id는 다시 세지 않음, 기억 폴더 밖과 sidechain의 호출과 기록 폴더를 다룬 shell은 세지 않음, 앞 자리부터 읽기와 덜 쓴 끝 줄, 작아진 파일, 이 폴더의 hook만의 `durationMs`다. `tests/test_hooks.py`가 hook 둘을 process로 띄워, 인자가 없으면 출력과 기록 폴더가 그 인자가 없을 때와 같은 것, 켠 출력의 줄, 두 번째 `Stop`이 새 줄만 세는 것, 응답 줄이 앞 `Stop`이 읽은 뒤에 늦게 적힌 장면, 두 몫에 걸친 `message.id`를 한 번만 세는 것, 지난 세션 줄과 resume 줄, 세기가 실패해도 exit 0이고 다른 줄과 모델에게 가는 글이 그대로인 것을 댄다. 기억 250개의 색인과 10MB 넘는 transcript에서 `Stop` 한 번이 hook 안에서 잰 100ms 안에 끝나는 것도 댄다 |
 | 다섯째 장치의 실제 세션 | 2026-11-26에 Claude Code 2.1.332의 `claude -p`(Opus 5.5)로 격리된 HOME에서 돌렸다. 기억 250개(색인 250줄)와 셋째 장치의 지시 글을 둔 저장소에서 넷째와 다섯째 장치를 켜고 세션 다섯(resume 하나 포함)을 돌렸다. 첫 화면에 20,970자(색인 앞 200줄 20,001자, 지시 글 969자)가 떴다. 둘째 세션부터 지난 세션 줄이 떴고, resume에서는 "이 세션에서 지금까지" 줄이 떴다. 모델이 기억 파일 하나를 `Read`한 답에서 `Stop` 줄이 떴다(읽기 1번, 결과 440자). 기억을 고친 답에서는 둘째, 넷째, 다섯째 장치의 줄이 차례로 떴고 알림 218자가 기록됐으며, 알림 뒤에 이어진 답은 `stop_hook_active`가 참인 답으로 따로 적혔다. 모델이 기억 폴더를 건드리지 않은 답에서는 `Stop` 줄이 뜨지 않았다. 대화형 화면은 보지 않았다 |
+| 다섯째 장치의 대화형 세션 | 2026-11-26에 Claude Code 2.1.332의 대화형 세션(tmux, auto mode, Opus 5.5)에서 봤다. 첫 화면에 둘째 장치의 줄과 다섯째 장치의 줄이 `SessionStart:startup says:` 아래에 떴다. 기억 파일 하나를 읽은 답 아래에 `Stop says:` 줄이 한 번 떴다(두 번 뜨지 않았다). `/compact` 뒤에 `SessionStart:compact says:` 아래로 실린 기억 줄, 다섯째 장치의 줄, "이 세션에서 지금까지" 줄이 떴다. 새 기억 250개를 처음 잡은 그 세션의 첫 SessionStart는 Claude Code가 잰 `durationMs`로 335ms였다. 모델 요청 둘인 답의 둘째 응답 줄이 `Stop` hook이 읽은 뒤에 적혀, 요청 수를 `api-request` 줄로 세게 고쳤다(판단 표). compact의 요약 요청은 transcript에 `api-request` 줄로 남지 않았다 |
+| 다섯째 장치와 함께 쓰는 기억 폴더 | 2026-11-26에 Claude Code 2.1.332의 `claude -p` 세션 둘을 같은 기억 폴더와 기록 폴더에 겹쳐 띄웠다(9.7초와 17.9초). 세션마다 `costs/<세션 id>.jsonl`이 따로 쌓였고, 모델 요청은 각 transcript의 `api-request` 줄 수(3과 4)와 같았다. `last-session`은 나중에 끝난 세션을 가리켰다. 한 번 본 것이다 |
 | 다섯째 장치의 hook 시간 | 위 세션에서 Claude Code가 잰 `durationMs`는 다섯째 장치를 켠 쪽이 SessionStart 120~147ms, `Stop` 66~97ms였고, 끈 쪽이 SessionStart 140~159ms, `Stop` 56~70ms였다. SessionStart가 hook 한 번 100ms 예산을 넘는 것은 다섯째 장치를 끈 쪽에서도 같다. 같은 세션의 hook 안에서 잰 값은 SessionStart 66~102ms, `Stop` 46~55ms여서 Claude Code가 잰 값보다 40~50ms 작았다 |
 | transcript에서 세는 칸을 읽는 법 | 세는 칸은 2026-11-26에 Claude Code 2.1.332의 `claude -p` 세션 하나(기억 250개)에서 본 transcript의 모양을 따랐다. 한 `message.id`가 thinking, text, tool_use 블록마다 여러 assistant 줄에 걸치고 줄마다 같은 `usage`를 싣는다. `tool_result`는 user 줄의 `message.content`에 든다. hook 한 번마다 `attachment` 줄 하나가 생기고, `Stop`의 `durationMs`는 `stop_hook_summary` 줄에도 다시 나온다. `api-request` 줄에 `querySource`가 있다(그 세션은 모두 `sdk`). transcript의 모양은 공식 문서에 없다 |
 | 실제 세션 | 2026-11-26에 Claude Code 2.1.332(Sonnet 5.5)의 격리된 HOME에서 `claude -p` 세션과 대화형 세션으로 돌렸다. "기억해 둬"로 기억을 남긴 세션과 다음 세션에서 고친 세션의 처음 봄, 실림, 바뀜이 그 답을 시킨 사람의 말과 함께 적혔고, 시각이 세션 기록의 쓴 때와 분까지 같았다. 대화형 세션에서 고친 기억을 되돌리는 명령으로 판 1로 되돌렸다 |
