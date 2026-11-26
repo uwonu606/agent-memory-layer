@@ -168,7 +168,7 @@ permission mode의 `default`는 Manual이라 부르는 mode의 설정값이다. 
 | `SessionEnd`의 출력 | JSON 출력은 버려져서 `systemMessage`도 뜨지 않는다 |
 | 비정상 종료 | `claude -p`가 SIGTERM을 받으면 `SessionEnd` hook을 돌리고 exit code 143으로 끝난다. Ctrl+C, 터미널 닫기, process가 죽는 경우는 적혀 있지 않다 |
 
-확인: 2026-11-25에 `hooks.md`와 `headless.md`를 읽었다(2.1.332). 실제 세션에서 본 것은 `Stop` 하나다. 2026-11-26에 2.1.332의 `claude -p`와 대화형 세션에서 `Stop` hook이 답이 끝날 때마다 돌았고, 입력의 `session_id`와 `transcript_path`로 그 답을 시킨 사람의 말을 읽을 수 있었으며, `systemMessage`가 대화형 화면에 `Stop says: <글>`로 떴다. 같은 날 2.1.332의 `claude -p`에서 `Stop` hook이 `additionalContext`를 내자 대화가 이어졌고, 모델이 그 글에 적힌 기억 파일을 같은 답에서 고쳤다(네 번 봤다). 그 세션의 stream-json에는 `systemMessage`가 `Stop says: <글>`인 system 줄로 남았다. `stop_hook_active`와 여덟 번의 상한은 2026-11-26에 `hooks.md`를 다시 받아 읽었고(changelog 맨 위 2.1.332) 돌려 보지 않았다. 나머지는 문서로만 읽었다. 대화형 세션이 닫힌 뒤에도 async hook이 띄운 처리가 살아남는지는 두 문서에 없어서, 실제 세션에서 봐야 안다.
+확인: 2026-11-25에 `hooks.md`와 `headless.md`를 읽었다(2.1.332). 실제 세션에서 본 것은 `Stop` 하나다. 2026-11-26에 2.1.332의 `claude -p`와 대화형 세션에서 `Stop` hook이 답이 끝날 때마다 돌았고, 입력의 `session_id`와 `transcript_path`로 그 답을 시킨 사람의 말을 읽을 수 있었으며, `systemMessage`가 대화형 화면에 `Stop says: <글>`로 떴다. 같은 날 2.1.332의 `claude -p`에서 `Stop` hook이 `additionalContext`를 내자 대화가 이어졌고, 모델이 그 글에 적힌 기억 파일을 같은 답에서 고쳤다(네 번 봤다). 그 세션의 stream-json에는 `systemMessage`가 `Stop says: <글>`인 system 줄로 남았다. 대화형 세션에서도 한 번 봤다. `additionalContext`의 글이 `Stop hook says: <글>`로 사람 화면에도 뜨고, 그 아래로 모델의 답이 이어졌다. `stop_hook_active`와 여덟 번의 상한은 2026-11-26에 `hooks.md`를 다시 받아 읽었고(changelog 맨 위 2.1.332) 돌려 보지 않았다. 나머지는 문서로만 읽었다. 대화형 세션이 닫힌 뒤에도 async hook이 띄운 처리가 살아남는지는 두 문서에 없어서, 실제 세션에서 봐야 안다.
 
 ## prompt caching은 다시 읽는 글을 싸게 한다
 
