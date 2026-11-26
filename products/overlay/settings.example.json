@@ -1,10 +1,10 @@
 {
   "hooks": {
     "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "python3 /path/to/agent-memory-layer/products/overlay/session_start_hook.py" }] }
+      { "hooks": [{ "type": "command", "command": "python3 /path/to/agent-memory-layer/products/overlay/session_start_hook.py --show-cost" }] }
     ],
     "Stop": [
-      { "hooks": [{ "type": "command", "command": "python3 /path/to/agent-memory-layer/products/overlay/stop_hook.py --find-old-values" }] }
+      { "hooks": [{ "type": "command", "command": "python3 /path/to/agent-memory-layer/products/overlay/stop_hook.py --find-old-values --show-cost" }] }
     ]
   }
 }

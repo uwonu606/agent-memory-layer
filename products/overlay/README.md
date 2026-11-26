@@ -1,12 +1,12 @@
 # 얹는 제품
 
-Claude Code의 auto memory를 켠 채 두고, 그 위에 장치를 하나씩 얹어 기억이 실리고 바뀌는 일을 사람이 읽어서 알게 하는 제품이다. 기억을 쓰고 싣고 고치는 일은 기준선(auto memory)이 그대로 하고, 이 제품은 보이고, 기록에 남기고, 되돌리게 하고, 고칠 때 놓친 기억을 모델에게 알린다.
+Claude Code의 auto memory를 켠 채 두고, 그 위에 장치를 하나씩 얹어 기억이 실리고 바뀌는 일을 사람이 읽어서 알게 하는 제품이다. 기억을 쓰고 싣고 고치는 일은 기준선(auto memory)이 그대로 하고, 이 제품은 보이고, 기록에 남기고, 되돌리게 하고, 고칠 때 놓친 기억을 모델에게 알리고, 기억 도구가 쓴 양을 센다.
 
 얹는 제품을 쓰는 사람과, 이 폴더의 코드를 이어서 고칠 사람이 읽는 글이다. 이 글에서 기록, 판, 실림은 이 저장소의 문서가 아니라 제품 안의 것을 가리킨다. 기록은 제품이 기억 폴더 밖에 덧붙여 남기는 층이고, 판은 기억 파일 하나의 한때 모습이다. 낱말의 뜻은 [용어집](../../GLOSSARY.md)에 있다.
 
 ## 장치
 
-장치는 [판단과 방향](../../docs/direction.md)의 제품의 차례대로 하나씩 얹는다. 이 폴더에 있는 것은 둘째, 셋째, 넷째다.
+장치는 [판단과 방향](../../docs/direction.md)의 제품의 차례대로 하나씩 얹는다. 이 폴더에 있는 것은 둘째부터 다섯째까지다.
 
 | 차례 | 장치 | 붙는 곳 | 이 폴더의 파일 |
 |---|---|---|---|
@@ -14,8 +14,9 @@ Claude Code의 auto memory를 켠 채 두고, 그 위에 장치를 하나씩 얹
 | 2 | 실린 기억을 사람 화면에 보이고, 기억이 실리고 바뀐 일과 그때의 판을 기록에 남기고, 판으로 되돌린다 | user settings의 hook 둘(`SessionStart`, `Stop`) | 아래 [파일](#파일)의 코드 전부 |
 | 3 | 기억마다 남긴 저장소와 어디서나 쓰이는지를 적게 하고, 그 작업에서만 한 말은 기억으로 쓰지 않게 한다 | 모델이 읽는 지시 파일에 더하는 글 | [memory-rules.md](memory-rules.md) |
 | 4 | 기억이 바뀐 답이 끝날 때, 바뀐 기억의 옛 값을 글자 그대로 품은 다른 기억을 찾아 모델에게 알린다 | 둘째 장치의 `Stop` hook 명령에 붙이는 인자 `--find-old-values` | `old_values.py` |
+| 5 | 기억 도구가 세션에 실은 글의 크기, hook이 걸린 시간, 모델이 기억 폴더를 다룬 호출을 세어 사람 화면과 기록 폴더에 보인다 | 둘째 장치의 hook 둘의 명령에 붙이는 인자 `--show-cost` | `cost_tally.py` |
 
-둘째 장치는 셋째, 넷째 장치 없이도 돈다. 셋째 장치가 붙어 있으면 색인 줄의 `[scope]`를 사람 화면에 함께 보인다. 넷째 장치는 둘째 장치의 `Stop` hook 안에서 돌아서, 둘째 장치 없이 붙지 않는다.
+둘째 장치는 셋째, 넷째 장치 없이도 돈다. 셋째 장치가 붙어 있으면 색인 줄의 `[scope]`를 사람 화면에 함께 보인다. 넷째 장치는 둘째 장치의 `Stop` hook 안에서, 다섯째 장치는 둘째 장치의 hook 둘 안에서 돌아서, 둘째 장치 없이 붙지 않는다. 넷째와 다섯째를 함께 붙이면 `Stop`에서 넷째가 먼저 돌고, 다섯째가 넷째의 알림 글자 수를 센다.
 
 ## 둘째 장치가 푸는 것
 
@@ -87,9 +88,50 @@ Claude Code의 auto memory를 켠 채 두고, 그 위에 장치를 하나씩 얹
 - 사실 글 안에서 다른 기억의 파일 이름을 링크 없이 맨 글자로 적은 것. `redis-port.md`가 옛 값이 되면 본문에 `redis-port.md`라고 적은 다른 기억을 알린다.
 - `20`처럼 짧은 숫자가 다른 뜻으로 쓰인 줄.
 
+## 다섯째 장치가 푸는 것
+
+> **예시** — 기억 250개가 쌓인 `todo-app` 저장소에서 세션을 열고 "테스트 돌려 줘"라고 한다. 모델은 모델 요청 7번으로 답을 끝내고, 그 사이에 shell로 기억 폴더의 파일 이름을 한 번 훑는다. 다음 날 새 세션을 연다.
+
+이 장치를 붙이면 기억 도구가 쓴 양이 예시에서 아래처럼 보인다.
+
+| 보려는 것 | 이 장치에서 |
+|---|---|
+| 세션에 실린 기억 글이 얼마인가 | 첫 화면에 실린 색인 줄과 얹는 제품의 지시 글의 글자 수가 뜬다. 예시에서는 20,970자다 |
+| 그 글이 얼마나 다시 읽혔나 | 다음 세션의 첫 화면에 지난 세션의 모델 요청 수와, 요청마다 실린 글을 다시 읽은 양이 뜬다. 예시에서는 7번에 146,790자다 |
+| 모델이 기억 폴더를 다뤄 대화에 들인 글이 얼마인가 | 그런 호출이 있던 답이 끝날 때 한 줄이 뜬다. 예시에서는 shell 호출 1번과 그 결과 126자다 |
+| hook이 일을 얼마나 늦추나 | 첫 화면과 기록에 hook 안에서 잰 시간이 있고, 기록에는 Claude Code가 잰 시간도 있다 |
+| 기억이 쌓이면 이것들이 함께 느나 | 세션마다의 풀이 `costs/<세션 id>.md`에 예산 두 줄과 견준 값이 있다. hook 한 번 100ms, 색인 상한 200줄과 25,000자다([비용](../../docs/design/cost.md)의 재기) |
+
+다섯째 장치는 모델에게 가는 글을 하나도 더하지 않는다. 사람 화면의 `systemMessage`와 기록 폴더의 `costs/`에만 낸다.
+
+### 세는 것
+
+| 무엇 | 어디서 세나 | 언제 |
+|---|---|---|
+| 실린 색인의 글자 수 | `MEMORY.md`에서 둘째 장치가 실렸다고 세는 앞줄들의 글자 수. 줄바꿈을 포함한다 | `SessionStart` |
+| 얹는 제품의 지시 글 | `memory-rules.md`의 글(앞뒤 공백을 뺀 것)이 `~/.claude/CLAUDE.md`에 글자 그대로 들어 있으면 그 글자 수. 없으면 찾지 못함으로 적는다 | `SessionStart` |
+| hook의 시간 | 스크립트 맨 위부터 기록 줄을 쓰기 직전까지 hook 안에서 잰 ms | 두 hook 모두 |
+| Claude Code가 잰 hook 시간 | transcript의 `attachment` 줄 가운데 `hook_success`나 `hook_non_blocking_error`이고 명령에 이 폴더의 경로가 든 것의 `durationMs`. `stop_hook_summary`에 다시 나오는 값은 세지 않는다 | `Stop` |
+| 모델 요청과 그 token | 이번 답의 transcript에서 `isSidechain`이 아닌 assistant 줄의 서로 다른 `message.id` 수. token은 id마다 마지막 줄의 `message.usage`를 한 번만 더한다(입력, cache 만듦, cache 읽음, 출력) | `Stop` |
+| 요청의 갈래 | `api-request` 줄의 `querySource`마다의 수 | `Stop` |
+| 모델이 기억 폴더를 다룬 호출 | `Read`·`Write`·`Edit`·`MultiEdit`의 `file_path`, `Grep`·`Glob`의 `path`가 기억 폴더 안이거나, `Bash`의 명령에 기억 폴더의 절대 경로가 든 호출. 읽기(`Read`, `Grep`, `Glob`, `Bash`)와 쓰기로 가르고, 같은 호출의 `tool_result` 글자 수를 더한다 | `Stop` |
+| 모델에게 보낸 알림 | 넷째 장치가 이번 `Stop`에서 낸 `additionalContext`의 글자 수 | `Stop` |
+| 알림 뒤에 이어진 요청 | 입력의 `stop_hook_active`가 참인 `Stop`의 모델 요청. 앞 `Stop`의 hook이 대화를 이어서 생긴 요청이다. 다른 제품의 `Stop` hook이 이은 것도 든다 | `Stop` |
+| 실린 글을 다시 읽은 양 | 이번 답의 모델 요청 수 × 이 세션의 마지막 세션 시작에 센 글자 수(색인과 지시 글). 세션 시작을 세지 못했으면 모른다 | `Stop` |
+
+transcript는 앞 `Stop`이 읽은 자리(byte)부터 끝의 다 쓴 줄까지만 읽는다. 끝의 줄바꿈 없는 줄은 다음 `Stop`이 읽고, 파일이 그 자리보다 작아졌으면 처음부터 다시 읽는다. transcript가 없으면 transcript에 기대는 값을 모름으로 둔다.
+
+세지 못하는 것이다. 풀이 파일에도 늘 적는다.
+
+- Claude Code가 system prompt에 넣는 기억 지시(`# Memory` 절)
+- 색인 앞에 붙는 머리 줄과, 색인이 잘렸을 때 붙는 경고
+- hook 안에서 잰 시간에 들지 않는, Python이 뜨는 시간
+- 구독의 사용 한도에 얼마로 잡히는지
+- `~`나 상대 경로, 변수로 기억 폴더를 부른 shell 호출과, 기억 폴더 밖의 경로로 들어간 호출(링크 따위)
+
 ## 붙이는 법
 
-1. [settings.example.json](settings.example.json)의 `hooks`를 user settings(`~/.claude/settings.json`)에 더한다. `/path/to/agent-memory-layer`는 이 저장소를 내려받은 절대 경로로 바꾼다. 이미 `hooks`가 있으면 `SessionStart`와 `Stop`의 배열에 한 칸씩 더한다. `Stop` 명령 끝의 `--find-old-values`가 넷째 장치를 켠다. 이 인자를 빼면 넷째 장치만 떨어지고, 출력과 기록은 둘째 장치만 있을 때와 글자까지 같다.
+1. [settings.example.json](settings.example.json)의 `hooks`를 user settings(`~/.claude/settings.json`)에 더한다. `/path/to/agent-memory-layer`는 이 저장소를 내려받은 절대 경로로 바꾼다. 이미 `hooks`가 있으면 `SessionStart`와 `Stop`의 배열에 한 칸씩 더한다. `Stop` 명령의 `--find-old-values`가 넷째 장치를 켠다. 이 인자를 빼면 넷째 장치만 떨어지고, 출력과 기록은 둘째 장치만 있을 때와 글자까지 같다. 두 명령 끝의 `--show-cost`가 다섯째 장치를 켠다. 빼면 다섯째 장치만 떨어지고, 출력과 기록 폴더는 그 인자가 없을 때와 글자까지 같다.
 2. 첫째 장치를 함께 쓰려면 같은 파일에 `"autoMemoryDirectory": "~/agent-memory"` 같은 한 줄을 둔다. 없으면 저장소마다의 기본 기억 폴더를 따른다.
 3. 새 세션을 연다. 첫 세션에서는 이미 쌓인 기억이 모두 세션 밖에서 생긴 것으로 기록에 들어간다. 기억 파일은 바꾸지 않는다.
 
@@ -118,7 +160,20 @@ Python 3.10 이상과 표준 라이브러리만 쓴다(돌려 본 것은 3.14다
 
 넷째 장치를 붙였으면, 바뀐 기억의 옛 값을 다른 기억에서 찾았을 때 그 아래에 `옛 값을 품은 다른 기억 1개를 모델에게 알렸다: local-stack.md (6380).` 같은 줄이 더 뜬다. 넷째 장치의 글은 [넷째 장치가 푸는 것](#넷째-장치가-푸는-것)에 있다.
 
-화면은 알리기만 한다. 기록이나 hook이 실패하면 `기억 기록이 실패했다. 일은 그대로 이어진다. (<오류>)` 한 줄을 내고 exit 0으로 끝나서 사람의 일을 막지 않는다. 넷째 장치만 실패하면 둘째 장치의 줄 아래에 `옛 값 찾기가 실패했다. 기억 기록은 남았고 일은 그대로 이어진다. (<오류>)`를 낸다.
+다섯째 장치를 붙였으면 세션이 시작할 때 그 아래에 한두 줄이 더 뜬다. 둘째 줄은 이 장치가 답의 끝을 한 번이라도 적은 뒤에만 뜨고, 지난 세션이 지금 세션(resume)이면 "이 세션에서 지금까지"로 뜬다. 지시 글을 찾지 못했으면 괄호 안에는 색인만 적는다.
+
+```text
+기억 도구가 이 세션에 실은 글은 20,970자다(색인 앞 200줄 20,001자, 얹는 제품의 지시 글 969자). 이 글은 모델 요청마다 다시 읽힌다. Claude Code가 붙이는 기억 지시와 잘림 경고는 세지 않았다. 이 hook 45ms(Python이 뜨는 시간은 빼고 잰 값).
+지난 세션 9a3ad47e(2026-11-26 04:42 UTC)에서 기억 도구가 쓴 것: 답 1번, 모델 요청 7번이 실린 글을 다시 읽어 146,790자, 모델이 기억 폴더를 다룬 호출 1번(결과 126자), 모델에게 보낸 알림 0자, hook 2번 합 58ms(Python이 뜨는 시간은 빼고). 자세히: <기록 폴더>/costs/9a3ad47e-….md
+```
+
+답이 끝날 때는, 그 답에서 모델이 기억 폴더를 다룬 호출이 있었거나, 넷째 장치가 알렸거나, hook이 100ms를 넘었을 때만 다른 줄 아래에 한 줄이 더 뜬다.
+
+```text
+이번 답에서 기억 도구가 쓴 것: 모델이 기억 폴더를 다룬 호출 2번(읽기 2번, 결과 3,120자가 대화에 들었다), 알림 412자, hook 28ms(Python이 뜨는 시간은 빼고 잰 값). 세션 합계: <기록 폴더>/costs/<세션 id>.md
+```
+
+화면은 알리기만 한다. 기록이나 hook이 실패하면 `기억 기록이 실패했다. 일은 그대로 이어진다. (<오류>)` 한 줄을 내고 exit 0으로 끝나서 사람의 일을 막지 않는다. 넷째 장치만 실패하면 둘째 장치의 줄 아래에 `옛 값 찾기가 실패했다. 기억 기록은 남았고 일은 그대로 이어진다. (<오류>)`를 낸다. 다섯째 장치만 실패하면 다른 장치의 줄은 그대로 두고 `쓴 양 세기가 실패했다. 기억 기록은 남았고 일은 그대로 이어진다. (<오류>)`를 더한다.
 
 ## 기억 폴더와 기록 폴더의 자리
 
@@ -142,8 +197,12 @@ Python 3.10 이상과 표준 라이브러리만 쓴다(돌려 본 것은 3.14다
 │       └── 2.index-line
 ├── history/
 │   └── commit-unit.md           사람이 읽는 내력. events.jsonl과 versions/에서 짓는다
-└── loads/
-    └── <세션 id>.md             그 세션이 시작할 때 실린 기억과 잘려서 실리지 않은 기억의 전체 목록
+├── loads/
+│   └── <세션 id>.md             그 세션이 시작할 때 실린 기억과 잘려서 실리지 않은 기억의 전체 목록
+└── costs/                       다섯째 장치를 붙였을 때만 생긴다
+    ├── <세션 id>.jsonl          덧붙이기만 하는 원본. session_start와 answer_end의 두 종류
+    ├── <세션 id>.md             사람이 읽는 풀이. 합계, 예산, 세션 시작마다와 답마다의 표, 세지 못한 것. jsonl에서 짓는다
+    └── last-session             마지막으로 answer_end를 적은 세션 id 한 줄
 ```
 
 ### events.jsonl
@@ -170,6 +229,26 @@ Python 3.10 이상과 표준 라이브러리만 쓴다(돌려 본 것은 3.14다
 | `outside_session` | 세션이 시작할 때 잡았다. 이 장치를 붙이기 전에 있었거나, 세션 밖에서 바뀌었거나, 끊긴 답에서 바뀐 것이다. 처음 봄이면 파일의 `metadata.originSessionId`를 `session`에 적는다 |
 | `session_start` | 실림 |
 | `restore_command` | 사람이 부른 되돌리는 명령 |
+
+### costs/의 줄
+
+```json
+{"event": "answer_end", "at": "2026-11-26T04:42:30Z", "transcript_offset": 45536, "requests": 7, "usage": {"input_tokens": 14, "cache_creation_input_tokens": 26425, "cache_read_input_tokens": 239140, "output_tokens": 1021}, "query_sources": {"sdk": 7}, "memory_calls": {"read": {"count": 1, "result_chars": 126}, "write": {"count": 0, "result_chars": 0}}, "notice_chars": 0, "stop_hook_active": false, "reread_chars": 146790, "hook_ms": 13, "claude_code_hook_ms": [61]}
+```
+
+| 칸 | 뜻 |
+|---|---|
+| `event` | `session_start`(세션이 시작할 때. resume과 compact로 같은 id가 다시 시작해도 한 줄 더 적는다)나 `answer_end`(답이 끝날 때) |
+| `at` | 적은 시각(UTC) |
+| `source` | `session_start`에만 있다. hook 입력의 `source` |
+| `index_lines`, `index_chars`, `rules_chars` | `session_start`에만 있다. 실린 색인의 줄 수와 글자 수, 지시 글의 글자 수. 지시 글을 찾지 못하면 `rules_chars`는 `null` |
+| `transcript_offset` | 다음 `Stop`이 transcript를 읽기 시작할 자리(byte) |
+| `requests`, `usage`, `query_sources`, `memory_calls` | 이번 답의 모델 요청 수, token의 합, `querySource`마다의 수, 기억 폴더를 다룬 호출의 읽기와 쓰기마다의 횟수와 결과 글자 수. transcript가 없으면 `null` |
+| `notice_chars` | 넷째 장치가 이번 답에서 모델에게 보낸 글자 수 |
+| `stop_hook_active` | hook 입력의 값. 참이면 이 답의 요청은 앞 `Stop`의 hook이 대화를 이어서 생겼다 |
+| `reread_chars` | 이번 답에서 실린 글을 다시 읽은 양. 모르면 `null` |
+| `hook_ms` | hook 안에서 잰 시간(ms) |
+| `claude_code_hook_ms` | 이번에 읽은 transcript에 나온, 이 폴더의 hook의 `durationMs` 목록. 이번 `Stop`의 값은 hook이 끝난 뒤에 적혀서 다음 `Stop`이 읽는다 |
 
 ### history/의 파일 하나
 
@@ -214,7 +293,7 @@ python3 /path/to/agent-memory-layer/products/overlay/restore.py commit-unit.md 1
 | 바뀐 것을 도구 호출마다 잡지 않고, 답이 끝날 때와 세션이 시작할 때 기억 폴더를 기록의 마지막 판과 견준다 | 모델은 `Write`·`Edit`뿐 아니라 shell의 `rm`·`sed -i`로도 기억을 바꾼다(2.1.332의 대화형 세션). 견주는 쪽은 바꾼 길을 가리지 않는다 | 한 답 안에서 같은 기억이 두 번 바뀌어 가운데 판이 빠진 것이 문제가 될 때 |
 | 견주는 일은 몇 번 불러도 같은 결과가 되게 한다. 판을 먼저 쓰고 일을 나중에 덧붙이며, 판의 번호는 `events.jsonl`에서 센다 | 같은 기억 폴더를 여러 세션이 함께 쓰고, hook은 중간에 죽을 수 있다. 일 없이 남은 판은 다음 견줌이 덮어쓴다 | — |
 | 기록 폴더를 쓰는 동안 파일 잠금을 건다 | 첫째 장치를 붙이면 모든 저장소의 세션이 기록 하나를 함께 쓴다. 판의 번호가 겹치지 않아야 한다 | 잠금이 hook을 눈에 띄게 늦출 때 |
-| 판단은 harness를 모르는 함수 넷(`sync`, `record_load`, `restore`, `find_old_value_mentions`)이 하고, hook 스크립트는 입력을 읽어 부르기만 한다 | 같은 핵심을 다른 harness의 hook이나 시험에서 그대로 부른다 | — |
+| 판단은 harness를 모르는 함수(`sync`, `record_load`, `restore`, `find_old_value_mentions`, `cost_tally.py`의 세고 쌓는 함수)가 하고, hook 스크립트는 입력을 읽어 부르기만 한다. transcript를 읽어 세는 칸으로 옮기는 일은 adapter(`claude_code.py`)가 한다 | 같은 핵심을 다른 harness의 hook이나 시험에서 그대로 부른다 | — |
 | 세션 밖에서 바뀐 기억에는 세션을 적지 않고, 처음 봄에만 `originSessionId`를 적는다 | 기준선은 기억을 고쳐도 `originSessionId`를 처음 쓴 세션에 둔다. 바뀜에 그 값을 적으면 고친 세션이 틀리게 적힌다 | — |
 | 같은 세션 id의 실림은 한 번만 적고, 화면 글은 세션이 시작할 때마다 낸다 | resume과 compact도 같은 id로 시작한다. 같은 기억을 두 번 실렸다고 세면 실린 횟수가 부푼다 | 기준선이 resume이나 compact 때 색인을 다시 싣는지가 실제 세션으로 밝혀질 때 |
 | 색인의 글자 상한에 걸친 줄은 실리지 않은 것으로 센다 | 기준선이 상한에서 줄 가운데를 자르는지는 보지 않았다. 걸친 줄의 기억은 링크가 잘렸을 수 있다 | 실제 세션에서 상한에 걸친 줄이 어떻게 실리는지 볼 때 |
@@ -229,17 +308,32 @@ python3 /path/to/agent-memory-layer/products/overlay/restore.py commit-unit.md 1
 | `description`, 본문, 색인 줄의 설명을 따로 견준다 | 한 글로 이어 견주면 본문 끝 줄과 색인 줄이 한 덩어리로 묶인다. 본문에서 옛 값을 내력으로 남기면 그 덩어리에서 사라진 값이 없어서, 색인 줄에서 값은 그대로 두고 말만 다듬은 줄의 값까지 옛 값이 된다 | — |
 | 지우고 새 이름으로 다시 쓴 기억은, 지운 기억마다 그 답에서 새로 생긴 기억 전부와 견준다 | 기준선은 고칠 때 옛 파일을 지우고 새 이름으로 쓰기도 한다(2.1.332). 새 파일과 옛 파일을 짝짓는 길은 따로 두지 않았다 | 관계없는 지우기와 새로 쓰기가 한 답에 겹쳐 잘못 알린 것이 시험에서 보일 때 |
 | 알림 하나에 찾은 줄을 10개까지 담고, 줄에 차례를 매기지 않는다 | `additionalContext`가 10,000자를 넘으면 파일로 빠진다(문서). 상한을 넘던 줄은 구조의 글자에서 나왔고, 사실 글만 찾으면 남는 줄은 모두 옛 값을 글자 그대로 품은 줄이어서 코드가 그 가운데 어느 것이 맞는지 가릴 근거가 없다. 넘친 줄은 개수를 적고, 모델은 알림에 적힌 값으로 기억 폴더를 찾을 수 있다 | 사실 글만 찾아도 줄이 넘쳐 맞는 줄이 밀린 것이 시험에서 보일 때 |
-| 알린 일은 기록(`events.jsonl`, `history/`)에 남기지 않는다 | 기록은 기억이 실리고 바뀐 일만 담는다. 알린 글은 transcript에 hook feedback으로 남고, 알림 뒤에 고친 기억은 둘째 장치가 바뀜으로 남긴다 | 알림이 고침으로 이어졌는지를 transcript 없이 세야 할 때 |
+| 알린 일은 기록(`events.jsonl`, `history/`)에 남기지 않는다 | `events.jsonl`과 `history/`는 기억이 실리고 바뀐 일만 담는다. 알린 글의 글자 수는 다섯째 장치가 쓴 양으로 `costs/`에 적는다. 알린 글은 transcript에 hook feedback으로 남고, 알림 뒤에 고친 기억은 둘째 장치가 바뀜으로 남긴다 | 알림이 고침으로 이어졌는지를 transcript 없이 세야 할 때 |
 | 넷째 장치는 hook 명령의 인자로 켜고 끈다 | 시험 설정의 줄 하나로 장치를 더하고 뺀다. 인자가 없으면 출력과 기록이 둘째 장치만 있을 때와 글자까지 같다 | — |
 | 넷째 장치가 실패해도 둘째 장치의 줄은 그대로 낸다 | 바뀜은 이미 기록에 남았고, 되돌리는 명령은 사람이 화면에서 읽어야 한다 | — |
+| 다섯째 장치는 둘째 장치의 hook 둘에 붙이는 인자 `--show-cost`로 켜고 끈다 | 넷째 장치와 같이 시험 설정의 줄 하나로 더하고 뺀다. 인자가 없으면 출력과 기록 폴더가 그 인자가 없을 때와 글자까지 같다. hook을 따로 걸면 Python이 한 번 더 떠서 세려는 시간이 는다 | — |
+| 쓴 양은 사람 화면과 `costs/`에만 내고, 모델에게 가는 글을 더하지 않는다 | 보이려고 context를 쓰면 보이는 일이 숨은 비용을 늘린다([설계의 입구](../../docs/design.md)의 당기는 짝, 보임과 숨은 비용) | — |
+| 쓴 양은 `events.jsonl`과 `history/`가 아니라 `costs/`에 세션마다 따로 쌓는다 | 기억마다의 내력과 섞이지 않고, 세션 하나의 풀이를 그 세션의 파일 하나에서 짓는다 | — |
+| 실린 글은 색인의 실린 줄과 얹는 제품의 지시 글만 센다. Claude Code가 붙이는 기억 지시와 색인의 머리 줄, 잘림 경고는 세지 못한 것으로 적는다 | hook이 읽을 수 있는 것은 파일이고, 붙는 글은 Claude Code 안에서 정해져 파일로 남지 않는다. 2.1.332의 `claude -p` 세션에서 모델에게 간 색인 블록 20,393자 가운데 앞 200줄이 20,001자, 잘림 경고가 287자였고, system prompt의 `# Memory` 절이 2,045자였다 | 붙는 글을 hook 입력이나 파일에서 읽을 수 있게 될 때 |
+| 실린 글을 다시 읽은 양은 모델 요청 수 × 실린 글의 글자 수로, token이 아니라 글자로 센다 | transcript의 `usage`는 요청 전체의 token이어서 실린 글의 몫을 가르지 못한다. 글자 수는 hook이 파일에서 바로 센다. cache에서 읽은 몫은 처음 읽는 값보다 싸게 잡혀서(API 값으로 0.1배 안팎) 이 값은 위쪽 어림이고, 풀이 파일에 그 말을 붙인다 | transcript나 hook 입력에 요청마다 실린 글의 token이 나올 때 |
+| 화면에는 hook 안에서 잰 값(스크립트 맨 위부터 기록 줄을 쓰기 직전까지)을 Python이 뜨는 시간이 빠졌다는 말과 함께 내고, Claude Code가 잰 `durationMs`는 기록에 적는다 | 화면에 낼 값은 출력을 쓰기 전에 정해져야 한다. `durationMs`는 hook이 끝난 뒤 transcript에 적혀서 그 hook은 자기 값을 읽지 못하고, `Stop`이 읽는 값은 앞 hook들의 것이다. 2.1.332의 `claude -p` 세션 다섯에서 hook 안에서 잰 값은 Claude Code가 잰 값보다 40~50ms 작았고, SessionStart 한 번은 hook 안에서 75ms, Claude Code가 잰 값으로 120ms여서 빠진 몫이 예산 100ms를 갈랐다 | hook이 자기 process 전체의 시간을 출력 전에 알 길이 생길 때, 또는 빠진 몫 때문에 예산을 넘는 hook을 사람이 화면에서 놓치는 일이 보일 때 |
+| `Stop`의 한 줄은 그 답에서 모델이 기억 폴더를 다룬 호출이 있었거나, 넷째 장치가 알렸거나, hook이 100ms를 넘었을 때만 낸다 | 답마다 뜨면 사람이 읽지 않게 된다. 셋은 그 답에서 기억 도구 때문에 대화에 글이 들었거나 일이 늦어진 때다. 나머지는 다음 세션의 첫 화면에 합으로 뜨고 풀이 파일에 답마다 남는다 | 줄이 뜨지 않은 답에서 쓴 양이 크게 는 것이 기록에서 보일 때 |
+| 세션이 시작할 때의 둘째 줄은 `last-session`이 가리키는 세션 하나만 요약한다. 그 세션이 지금 세션이면 지금까지로 적는다 | `costs/`를 훑지 않고 파일 하나만 읽어서, 기록이 길어져도 세션이 시작할 때 읽는 양이 늘지 않는다([비용](../../docs/design/cost.md)의 기록의 길이). 바로 앞 세션이 가장 가까운 견줄 값이다 | 여러 세션을 견줘야 어디서 비용이 느는지 가릴 수 있을 때 |
+| transcript는 앞 `Stop`이 적은 자리(byte)부터 끝의 다 쓴 줄까지만 읽는다 | 세션이 길어져도 `Stop` 한 번의 일이 그 답의 길이에만 붙는다. 덜 쓴 줄은 다음 `Stop`이 읽고, 파일이 작아졌으면 처음부터 읽는다 | transcript가 중간에 고쳐 쓰여 자리가 어긋나는 것이 보일 때 |
+| 모델이 기억 폴더를 다룬 호출은 도구 이름과 경로로 가른다. shell은 명령에 기억 폴더의 절대 경로가 들고 그 뒤에 파일 이름의 글자(`A-Za-z0-9._-`)가 이어지지 않는 것만 센다 | 기억 폴더 `~/agent-memory`의 기록 폴더 `~/agent-memory-journal`처럼 이름이 이어지는 폴더를 다룬 명령을 세지 않는다. `~`나 변수로 부른 shell은 놓치고, 세지 못한 것으로 적는다 | 놓친 호출이 실제 세션에서 보일 때 |
+| 쓴 양 세기가 실패해도 다른 장치의 줄과 모델에게 가는 글은 그대로 낸다 | 기억 기록과 넷째 장치의 알림은 쓴 양과 따로 이미 끝났다 | — |
 
 ## 확인한 것과 하지 못한 것
 
 | 무엇 | 상태 |
 |---|---|
-| 핵심 함수와 hook 스크립트 | `python3 -m unittest discover -s tests -t .`(이 폴더에서)로 54개가 통과한다. 임시 HOME과 임시 기억 폴더에서 hook 둘을 손으로 만든 입력으로 불렀다 |
+| 핵심 함수와 hook 스크립트 | `python3 -m unittest discover -s tests -t .`(이 폴더에서)로 88개가 통과한다. 임시 HOME과 임시 기억 폴더에서 hook 둘을 손으로 만든 입력으로 불렀다 |
 | 넷째 장치의 옛 값 | 위 시험의 `tests/test_old_values.py`가 [옛 값](#옛-값)의 장면마다 찾은 줄을 글자로 댄다. `tests/test_hooks.py`가 `Stop` hook을 process로 띄워 켠 출력, 끈 출력, `stop_hook_active`가 참인 출력을 글자로 댄다. 끈 출력은 둘째 장치만 있을 때의 시험과 같은 글자다 |
 | 넷째 장치의 실제 세션 | 2026-11-26에 Claude Code 2.1.332의 `claude -p`(Sonnet 5.5)에서 돌렸다. 사실 글만 보는 지금의 장치로는, 기억 스물넷 가운데 둘이 같은 옛 값을 품고 사람이 그 값을 기억과 다른 이름으로 부르며 고치게 한 세션을 아홉 번 돌렸다. 모델이 한 기억만 고치고 답을 끝낸 세 번 모두 `Stop`의 `additionalContext`가 대화를 이어 가게 했고, 모델이 알림에 적힌 다른 기억을 같은 답에서 고쳤다. 모델이 두 기억을 함께 고친 세 번과, 아무 기억도 고치지 않고 사람에게 되물은 세 번에는 알리지 않았다. 답 안에서 기억이 바뀌거나 지워지는 다른 세션 열두 번(값이 다른 기억에 없는 고침, 새로 쓴 기억을 지우기)에서도 알리지 않았다. 화면 줄은 stream에 `Stop says:` 아래 두 줄로 남았다. 사실 글을 가리기 전의 장치는 같은 폴더에서 색인 줄을 고친 답 하나가 scope 이름과 자기 파일 이름을 옛 값으로 뽑아 알림이 기억 다섯과 넘친 줄 34개로 찼고, 사실 글의 판단이 그것을 근거로 한다. 대화형 세션에서는 같은 폴더로 한 번 봤다. 기억 하나만 고친 답 아래에 `Stop says:` 두 줄이 떴고, 그 아래에 모델에게 간 글이 `Stop hook says:`로 사람 화면에도 그대로 보였다. 모델이 이어서 다른 기억을 고쳤고, 그 답 아래에는 둘째 장치의 줄만 떴다 |
+| 다섯째 장치의 세는 칸 | 위 시험의 `tests/test_cost_tally.py`가 손으로 만든 transcript로 칸마다 값을 댄다. 모델 요청은 `message.id`마다 한 번, token은 id마다 마지막 줄, 기억 폴더 밖과 sidechain의 호출과 기록 폴더를 다룬 shell은 세지 않음, 앞 자리부터 읽기와 덜 쓴 끝 줄, 작아진 파일, 이 폴더의 hook만의 `durationMs`다. `tests/test_hooks.py`가 hook 둘을 process로 띄워, 인자가 없으면 출력과 기록 폴더가 그 인자가 없을 때와 같은 것, 켠 출력의 줄, 두 번째 `Stop`이 새 줄만 세는 것, 지난 세션 줄과 resume 줄, 세기가 실패해도 exit 0이고 다른 줄과 모델에게 가는 글이 그대로인 것을 댄다. 기억 250개의 색인과 10MB 넘는 transcript에서 `Stop` 한 번이 hook 안에서 잰 100ms 안에 끝나는 것도 댄다 |
+| 다섯째 장치의 실제 세션 | 2026-11-26에 Claude Code 2.1.332의 `claude -p`(Opus 5.5)로 격리된 HOME에서 돌렸다. 기억 250개(색인 250줄)와 셋째 장치의 지시 글을 둔 저장소에서 넷째와 다섯째 장치를 켜고 세션 다섯(resume 하나 포함)을 돌렸다. 첫 화면에 20,970자(색인 앞 200줄 20,001자, 지시 글 969자)가 떴다. 둘째 세션부터 지난 세션 줄이 떴고, resume에서는 "이 세션에서 지금까지" 줄이 떴다. 모델이 기억 파일 하나를 `Read`한 답에서 `Stop` 줄이 떴다(읽기 1번, 결과 440자). 기억을 고친 답에서는 둘째, 넷째, 다섯째 장치의 줄이 차례로 떴고 알림 218자가 기록됐으며, 알림 뒤에 이어진 답은 `stop_hook_active`가 참인 답으로 따로 적혔다. 모델이 기억 폴더를 건드리지 않은 답에서는 `Stop` 줄이 뜨지 않았다. 대화형 화면은 보지 않았다 |
+| 다섯째 장치의 hook 시간 | 위 세션에서 Claude Code가 잰 `durationMs`는 다섯째 장치를 켠 쪽이 SessionStart 120~147ms, `Stop` 66~97ms였고, 끈 쪽이 SessionStart 140~159ms, `Stop` 56~70ms였다. SessionStart가 hook 한 번 100ms 예산을 넘는 것은 다섯째 장치를 끈 쪽에서도 같다. 같은 세션의 hook 안에서 잰 값은 SessionStart 66~102ms, `Stop` 46~55ms여서 Claude Code가 잰 값보다 40~50ms 작았다 |
+| transcript에서 세는 칸을 읽는 법 | 세는 칸은 2026-11-26에 Claude Code 2.1.332의 `claude -p` 세션 하나(기억 250개)에서 본 transcript의 모양을 따랐다. 한 `message.id`가 thinking, text, tool_use 블록마다 여러 assistant 줄에 걸치고 줄마다 같은 `usage`를 싣는다. `tool_result`는 user 줄의 `message.content`에 든다. hook 한 번마다 `attachment` 줄 하나가 생기고, `Stop`의 `durationMs`는 `stop_hook_summary` 줄에도 다시 나온다. `api-request` 줄에 `querySource`가 있다(그 세션은 모두 `sdk`). transcript의 모양은 공식 문서에 없다 |
 | 실제 세션 | 2026-11-26에 Claude Code 2.1.332(Sonnet 5.5)의 격리된 HOME에서 `claude -p` 세션과 대화형 세션으로 돌렸다. "기억해 둬"로 기억을 남긴 세션과 다음 세션에서 고친 세션의 처음 봄, 실림, 바뀜이 그 답을 시킨 사람의 말과 함께 적혔고, 시각이 세션 기록의 쓴 때와 분까지 같았다. 대화형 세션에서 고친 기억을 되돌리는 명령으로 판 1로 되돌렸다 |
 | `Stop` hook 입력에 `session_id`와 `transcript_path`가 온다 | 공식 문서 `hooks.md`(2026-11-25에 읽음)가 모든 hook의 공통 입력으로 적는다. 위 실제 세션에서 바뀜의 줄에 세션 id와 사람의 말이 적힌 것으로 확인했다 |
 | `Stop` hook의 `systemMessage`가 사람 화면에 뜬다 | 대화형 세션에서 답 아래에 `Stop says: <글>`로 떴다. `async: true`로 걸면 뜨지 않는다고 문서가 적으므로 그렇게 걸지 않는다 |
@@ -255,12 +349,13 @@ python3 /path/to/agent-memory-layer/products/overlay/restore.py commit-unit.md 1
 | 파일 | 하는 일 |
 |---|---|
 | `memory_journal.py` | 핵심. harness를 모른다. `sync`, `record_load`, `restore`, `rebuild_history`와 화면 글 |
-| `claude_code.py` | Claude Code adapter. 기억 폴더와 기록 폴더의 자리, transcript에서 사람의 말 읽기, hook 출력(`systemMessage`와 `Stop`의 `additionalContext`) |
-| `session_start_hook.py` | `SessionStart` hook. 세션 밖의 바뀜을 견주고, 실린 것을 적고, 화면 글을 낸다 |
-| `stop_hook.py` | `Stop` hook. 그 답의 바뀜을 견주어 사람의 말과 함께 적고, 바뀐 것이 있으면 화면 한 줄을 낸다. `--find-old-values`를 받으면 넷째 장치를 돌린다 |
+| `claude_code.py` | Claude Code adapter. 기억 폴더와 기록 폴더의 자리, transcript에서 사람의 말 읽기, transcript의 이번 답에서 다섯째 장치가 세는 칸 읽기, hook 출력(`systemMessage`와 `Stop`의 `additionalContext`) |
+| `session_start_hook.py` | `SessionStart` hook. 세션 밖의 바뀜을 견주고, 실린 것을 적고, 화면 글을 낸다. `--show-cost`를 받으면 실린 글을 세고 지난 세션의 쓴 양을 보인다 |
+| `stop_hook.py` | `Stop` hook. 그 답의 바뀜을 견주어 사람의 말과 함께 적고, 바뀐 것이 있으면 화면 한 줄을 낸다. `--find-old-values`를 받으면 넷째 장치를, `--show-cost`를 받으면 그 뒤에 다섯째 장치를 돌린다 |
 | `old_values.py` | 넷째 장치의 핵심. harness를 모른다. 바뀐 기억의 옛 값을 뽑고, 바뀌지 않은 기억에서 그 값을 품은 줄을 찾아, 모델에게 가는 글과 화면 줄을 짓는다 |
+| `cost_tally.py` | 다섯째 장치의 핵심. harness를 모른다. 실린 글을 세고, `costs/`에 줄을 쌓고, 풀이 파일과 화면 줄을 짓는다 |
 | `restore.py` | 사람이 부르는 되돌리는 명령 |
 | `rebuild_history.py` | `history/`를 다시 짓는 명령 |
 | `settings.example.json` | user settings에 더할 줄의 예 |
-| `tests/` | `unittest`. 핵심 함수를 임시 폴더에서 부르는 시험(`test_memory_journal.py`, `test_old_values.py`)과, hook 스크립트와 명령을 process로 띄우는 시험(`test_hooks.py`) |
+| `tests/` | `unittest`. 핵심 함수를 임시 폴더에서 부르는 시험(`test_memory_journal.py`, `test_old_values.py`, `test_cost_tally.py`)과, hook 스크립트와 명령을 process로 띄우는 시험(`test_hooks.py`) |
 | `memory-rules.md` | 셋째 장치의 지시 글. 사람의 지시 파일(`~/.claude/CLAUDE.md`)에 옮겨 넣는다 |
